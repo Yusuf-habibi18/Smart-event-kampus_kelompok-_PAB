@@ -18,7 +18,21 @@ class TicketViewModel extends ChangeNotifier {
   final List<EventTicket> _cancelled = [];
   final List<CompletedEvent> _completed;
   final Map<String, EventReview> _reviews = {};
+  final Set<int> _saved = {};
   bool _isSubmitting = false;
+
+  // --- Event favorit (ikon hati di kartu event) -----------------------------
+
+  bool isSaved(int eventId) => _saved.contains(eventId);
+  int get totalSaved => _saved.length;
+
+  /// Simpan / batal simpan event. Mengembalikan status baru.
+  bool toggleSaved(int eventId) {
+    final bool saved = _saved.add(eventId);
+    if (!saved) _saved.remove(eventId);
+    notifyListeners();
+    return saved;
+  }
 
   // --- State yang dibaca View ---------------------------------------------
 

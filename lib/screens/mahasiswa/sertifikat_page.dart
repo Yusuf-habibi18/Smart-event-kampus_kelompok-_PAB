@@ -29,8 +29,8 @@ class SertifikatPage extends StatelessWidget {
                   minScale: 0.8,
                   maxScale: 5,
                   child: const AspectRatio(
-                    aspectRatio: _CertificateCanvas.width /
-                        _CertificateCanvas.height,
+                    aspectRatio:
+                        _CertificateCanvas.width / _CertificateCanvas.height,
                     child: FittedBox(child: _CertificateCanvas()),
                   ),
                 ),
@@ -41,7 +41,7 @@ class SertifikatPage extends StatelessWidget {
                 child: SafeArea(
                   child: IconButton(
                     tooltip: 'Tutup',
-                    color: Colors.white,
+                    color: AppColors.surface,
                     icon: const Icon(Icons.close_rounded),
                     onPressed: () => Navigator.of(ctx).pop(),
                   ),
@@ -56,14 +56,13 @@ class SertifikatPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bagian SKPI hanya untuk mahasiswa ITPLN.
+    final bool mahasiswa = context.watch<AuthViewModel>().isMahasiswa;
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ScreenAppBar(
-        title: 'Detail & Unduh Sertifikat',
-        subtitle: 'SKPI Terverifikasi SIAKAD',
-        showBack: showBackButton,
-      ),
       body: SafeArea(
+        top: false,
         bottom: false,
         child: Center(
           child: ConstrainedBox(
@@ -71,140 +70,183 @@ class SertifikatPage extends StatelessWidget {
             child: Column(
               children: [
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-                    children: [
-                      const _VerifiedBanner(),
-                      const SizedBox(height: 24),
-                      const SectionHeader(
-                        title: 'Pratinjau E-Sertifikat',
-                        trailingText: 'Ukuran A4 Landscape',
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: HeroHeader(
+                          leading: showBackButton
+                              ? Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: CircleIconButton(
+                                    icon: Icons.arrow_back_rounded,
+                                    tooltip: MaterialLocalizations.of(context)
+                                        .backButtonTooltip,
+                                    onPressed: () =>
+                                        Navigator.of(context).maybePop(),
+                                  ),
+                                )
+                              : null,
+                          eyebrow: 'Terverifikasi SIAKAD',
+                          title: 'Sertifikat',
+                          subtitle:
+                              'Pratinjau, unduh, dan cek keaslian '
+                              'sertifikat kegiatan kamu.',
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Semantics(
-                        button: true,
-                        label: 'Buka pratinjau sertifikat layar penuh',
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () => _openFullscreen(context),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x1F000000),
-                                  blurRadius: 24,
-                                  offset: Offset(0, 10),
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(20, 12, 20, 40),
+                        sliver: SliverList.list(
+                          children: [
+                            const _VerifiedBanner(),
+                            const SizedBox(height: 40),
+                            const SectionHeader(
+                              title: 'Pratinjau E-Sertifikat',
+                              trailingText: 'Ukuran A4 Landscape',
+                            ),
+                            const SizedBox(height: 12),
+                            Semantics(
+                              button: true,
+                              label: 'Buka pratinjau sertifikat layar penuh',
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () => _openFullscreen(context),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x1F000000),
+                                        blurRadius: 24,
+                                        offset: Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const AspectRatio(
+                                    aspectRatio:
+                                        _CertificateCanvas.width /
+                                        _CertificateCanvas.height,
+                                    child: FittedBox(
+                                      child: _CertificateCanvas(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.zoom_out_map_rounded,
+                                  size: 14,
+                                  color: AppColors.textMuted,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Ketuk untuk mode layar penuh & pembesaran',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: const AspectRatio(
-                              aspectRatio: _CertificateCanvas.width /
-                                  _CertificateCanvas.height,
-                              child: FittedBox(child: _CertificateCanvas()),
+                            const SizedBox(height: 40),
+                            if (mahasiswa) ...[
+                              const SectionHeader(
+                                title: 'Integrasi Kredit Akademik (SKPI)',
+                              ),
+                              const SizedBox(height: 12),
+                              const SurfaceCard(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 6,
+                                ),
+                                child: Column(
+                                  children: [
+                                    _CreditRow(
+                                      icon: Icons.stars_rounded,
+                                      label: 'Kredit Poin',
+                                      value: '+10 Poin',
+                                      note:
+                                          'Kategori: Pengembangan Keilmuan & '
+                                          'Teknologi',
+                                    ),
+                                    Divider(height: 1),
+                                    _CreditRow(
+                                      icon: Icons.sync_rounded,
+                                      label: 'Status Transkrip',
+                                      value: 'Tersinkronisasi',
+                                      note:
+                                          'Tercatat otomatis di Transkrip SKPI '
+                                          'Kelulusan Wisuda',
+                                    ),
+                                    Divider(height: 1),
+                                    _CreditRow(
+                                      icon: Icons.schedule_rounded,
+                                      label: 'Waktu Penerbitan Resmi',
+                                      value: '15 Mei 2025 • Pukul 13:00 WIB',
+                                      badge: 'Permanen',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 40),
+                            ],
+                            const SectionHeader(title: 'Opsi Unduh & Ekspor'),
+                            const SizedBox(height: 12),
+                            _DownloadTile(
+                              icon: Icons.picture_as_pdf_rounded,
+                              title: 'Unduh PDF untuk Dicetak',
+                              subtitle:
+                                  'Format Cetak Standar Industri (~1.4 MB)',
+                              primary: true,
+                              onTap: () => showComingSoon(context, 'Unduh PDF'),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.zoom_out_map_rounded,
-                            size: 14,
-                            color: AppColors.textMuted,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Ketuk untuk mode layar penuh & pembesaran',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
+                            const SizedBox(height: 10),
+                            _DownloadTile(
+                              icon: Icons.image_rounded,
+                              title: 'Simpan Gambar PNG',
+                              subtitle:
+                                  'Format Media Sosial / LinkedIn (1080p)',
+                              onTap: () =>
+                                  showComingSoon(context, 'Simpan PNG'),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      const SectionHeader(
-                        title: 'Integrasi Kredit Akademik (SKPI)',
-                      ),
-                      const SizedBox(height: 12),
-                      const SurfaceCard(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 6,
-                        ),
-                        child: Column(
-                          children: [
-                            _CreditRow(
-                              icon: Icons.stars_rounded,
-                              label: 'Kredit Poin',
-                              value: '+10 Poin',
-                              note: 'Kategori: Pengembangan Keilmuan & '
-                                  'Teknologi',
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SmallAction(
+                                    icon: Icons.work_outline_rounded,
+                                    label: 'Add to LinkedIn',
+                                    onTap: () => showComingSoon(
+                                      context,
+                                      'Add to LinkedIn',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _SmallAction(
+                                    icon: Icons.mail_outline_rounded,
+                                    label: 'Kirim ke Email',
+                                    onTap: () => showComingSoon(
+                                      context,
+                                      'Kirim ke Email',
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Divider(height: 1, color: AppColors.surfaceHigh),
-                            _CreditRow(
-                              icon: Icons.sync_rounded,
-                              label: 'Status Transkrip',
-                              value: 'Tersinkronisasi',
-                              note: 'Tercatat otomatis di Transkrip SKPI '
-                                  'Kelulusan Wisuda',
+                            const SizedBox(height: 40),
+                            const SectionHeader(
+                              title: 'Verifikasi Dokumen Resmi',
                             ),
-                            Divider(height: 1, color: AppColors.surfaceHigh),
-                            _CreditRow(
-                              icon: Icons.schedule_rounded,
-                              label: 'Waktu Penerbitan Resmi',
-                              value: '15 Mei 2025 • Pukul 13:00 WIB',
-                              badge: 'Permanen',
-                            ),
+                            const SizedBox(height: 12),
+                            const _VerifyCard(),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      const SectionHeader(title: 'Opsi Unduh & Ekspor'),
-                      const SizedBox(height: 12),
-                      _DownloadTile(
-                        icon: Icons.picture_as_pdf_rounded,
-                        title: 'Unduh PDF Resolusi Tinggi (Cetak)',
-                        subtitle: 'Format Cetak Standar Industri (~1.4 MB)',
-                        primary: true,
-                        onTap: () => showComingSoon(context, 'Unduh PDF'),
-                      ),
-                      const SizedBox(height: 10),
-                      _DownloadTile(
-                        icon: Icons.image_rounded,
-                        title: 'Simpan Gambar PNG',
-                        subtitle: 'Format Media Sosial / LinkedIn (1080p)',
-                        onTap: () => showComingSoon(context, 'Simpan PNG'),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _SmallAction(
-                              icon: Icons.work_outline_rounded,
-                              label: 'Add to LinkedIn',
-                              onTap: () =>
-                                  showComingSoon(context, 'Add to LinkedIn'),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _SmallAction(
-                              icon: Icons.mail_outline_rounded,
-                              label: 'Kirim ke Email',
-                              onTap: () =>
-                                  showComingSoon(context, 'Kirim ke Email'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      const SectionHeader(title: 'Verifikasi Dokumen Resmi'),
-                      const SizedBox(height: 12),
-                      const _VerifyCard(),
                     ],
                   ),
                 ),
@@ -255,9 +297,10 @@ class _VerifiedBanner extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: AppFonts.heading,
                         fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                        fontWeight: FontWeight.w700,
                         height: 1.3,
-                        color: AppColors.navy,
+                        color: AppColors.ink,
                       ),
                     ),
                     SizedBox(height: 6),
@@ -269,8 +312,8 @@ class _VerifiedBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Terdaftar di Pangkalan Data SKPI Universitas & Siakad '
-            'Kemahasiswaan secara kriptografis.',
+            'Sertifikat ini tercatat resmi di data SKPI kampus, jadi '
+            'keasliannya bisa dicek kapan saja.',
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
@@ -292,14 +335,14 @@ class _VerifiedBanner extends StatelessWidget {
                     'NO: $_certNumber',
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
                       color: AppColors.textPrimary,
                     ),
                   ),
                 ),
                 SizedBox(width: 8),
-                PillBadge(text: 'Hash 256-Bit', icon: Icons.lock_rounded),
+                PillBadge(text: 'Asli', icon: Icons.lock_rounded),
               ],
             ),
           ),
@@ -311,15 +354,19 @@ class _VerifiedBanner extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // Gambar sertifikat (kanvas tetap 560x396, diskalakan dengan FittedBox)
+// Sertifikat = kertas terang, jadi warnanya tidak mengikuti tema gelap.
 // ---------------------------------------------------------------------------
+
+const Color _paper = Color(0xFFFFFDF8);
+const Color _paperText = Color(0xFF24344A);
+const Color _paperMuted = Color(0xFF5A6779);
+const Color _paperTint = Color(0xFFE8F0FD);
 
 class _CertificateCanvas extends StatelessWidget {
   const _CertificateCanvas();
 
   static const double width = 560;
   static const double height = 396;
-
-  static const Color _paper = Color(0xFFFFFDF8);
 
   @override
   Widget build(BuildContext context) {
@@ -329,11 +376,11 @@ class _CertificateCanvas extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: _paper,
-        border: Border.all(color: AppColors.navy, width: 6),
+        border: Border.all(color: AppColors.primary, width: 6),
       ),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.accent, width: 1.5),
+          border: Border.all(color: AppColors.primary, width: 1.5),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         child: const Center(
@@ -363,19 +410,19 @@ class _CertificateBody extends StatelessWidget {
           style: TextStyle(
             fontFamily: AppFonts.heading,
             fontSize: 20,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             letterSpacing: 2,
-            color: AppColors.navy,
+            color: AppColors.onLight,
           ),
         ),
         const SizedBox(height: 2),
         const Text(
           'Biro Kemahasiswaan & Himpunan Mahasiswa Informatika (HMIF)',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 11, color: _paperText),
         ),
         const SizedBox(height: 8),
-        Container(width: 80, height: 2, color: AppColors.accent),
+        Container(width: 80, height: 2, color: AppColors.primary),
         const SizedBox(height: 10),
         const Text(
           'SERTIFIKAT PENGHARGAAN',
@@ -383,15 +430,15 @@ class _CertificateBody extends StatelessWidget {
           style: TextStyle(
             fontFamily: AppFonts.heading,
             fontSize: 22,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             letterSpacing: 1.5,
-            color: AppColors.accentDark,
+            color: AppColors.onLight,
           ),
         ),
         const SizedBox(height: 8),
         const Text(
           'Diberikan secara terhormat kepada:',
-          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 12, color: _paperText),
         ),
         const SizedBox(height: 2),
         Text(
@@ -400,18 +447,21 @@ class _CertificateBody extends StatelessWidget {
           style: const TextStyle(
             fontFamily: AppFonts.heading,
             fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: AppColors.navy,
+            letterSpacing: -0.3,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onLight,
           ),
         ),
         Text(
-          'NIM: ${student.nim} • ${student.program}',
-          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          student.isMahasiswa
+              ? 'NIM: ${student.nim} • ${student.program}'
+              : student.identityLine,
+          style: const TextStyle(fontSize: 11, color: _paperText),
         ),
         const SizedBox(height: 8),
         const Text(
           'Atas partisipasinya aktif dalam kegiatan:',
-          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 12, color: _paperText),
         ),
         const SizedBox(height: 2),
         const Text(
@@ -420,16 +470,16 @@ class _CertificateBody extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             height: 1.3,
-            color: AppColors.textPrimary,
+            color: AppColors.onLight,
           ),
         ),
         const SizedBox(height: 4),
         const Text(
           'Sebagai Peserta Aktif (Kehadiran 100% Presensi Terverifikasi)',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 11, color: _paperText),
         ),
         const SizedBox(height: 12),
         const Row(
@@ -468,15 +518,12 @@ class _Signature extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          top,
-          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 20),
+        Text(top, style: const TextStyle(fontSize: 11, color: _paperText)),
+        const SizedBox(height: 24),
         Container(
           height: 1,
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          color: AppColors.textMuted,
+          color: _paperMuted,
         ),
         const SizedBox(height: 3),
         Text(
@@ -484,14 +531,14 @@ class _Signature extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onLight,
           ),
         ),
         Text(
           role,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 10, color: _paperText),
         ),
       ],
     );
@@ -509,19 +556,19 @@ class _Seal extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.accentSoft,
-        border: Border.all(color: AppColors.accent, width: 3),
+        color: _paperTint,
+        border: Border.all(color: AppColors.primary, width: 3),
       ),
       child: const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified_rounded, size: 20, color: AppColors.accentDark),
+          Icon(Icons.verified_rounded, size: 20, color: AppColors.primary),
           Text(
             'SEAL SAH',
             style: TextStyle(
               fontSize: 8,
-              fontWeight: FontWeight.w800,
-              color: AppColors.accentDark,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -560,10 +607,10 @@ class _CreditRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.surfaceLow,
+              color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 20, color: AppColors.navy),
+            child: Icon(icon, size: 20, color: AppColors.glow),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -582,7 +629,7 @@ class _CreditRow extends StatelessWidget {
                   value,
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -628,59 +675,62 @@ class _DownloadTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color fg = primary ? Colors.white : AppColors.textPrimary;
-    final Color sub = primary ? AppColors.periwinkle : AppColors.textMuted;
+    final Color sub = primary ? const Color(0xD9FFFFFF) : AppColors.textMuted;
 
     return Material(
-      color: primary ? AppColors.navy : Colors.white,
+      color: primary ? AppColors.primary : AppColors.surface,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: primary ? AppColors.navy : AppColors.surfaceHigh,
-        ),
+        side: BorderSide(color: primary ? AppColors.primary : AppColors.border),
       ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: primary
-                      ? Colors.white.withAlpha(30)
-                      : AppColors.surfaceLow,
-                  borderRadius: BorderRadius.circular(12),
+      child: Ink(
+        decoration: primary
+            ? AppDecorations.brandPanel(radius: 18, shadow: false)
+            : null,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: primary
+                        ? Colors.white.withAlpha(30)
+                        : AppColors.surfaceLow,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: primary ? Colors.white : AppColors.glow,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  color: primary ? AppColors.accent : AppColors.navy,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: fg,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: fg,
+                        ),
                       ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(fontSize: 12, color: sub),
-                    ),
-                  ],
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 12, color: sub),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.download_rounded, color: fg),
-            ],
+                Icon(Icons.download_rounded, color: fg),
+              ],
+            ),
           ),
         ),
       ),
@@ -708,12 +758,14 @@ class _SmallAction extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(46),
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        foregroundColor: AppColors.navy,
-        side: const BorderSide(color: AppColors.outline),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+        foregroundColor: AppColors.glow,
+        side: const BorderSide(color: AppColors.border),
+        shape: buttonShape,
+        textStyle: const TextStyle(
+          fontFamily: AppFonts.body,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
         ),
-        textStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 12.5, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -735,7 +787,7 @@ class _VerifyCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.outline),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: const QrCodeView(data: _verifyHost, size: 96),
               ),
@@ -755,7 +807,7 @@ class _VerifyCard extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     PillBadge.success(
-                      text: 'Enkripsi SHA-256 Valid',
+                      text: 'Keaslian Terjamin',
                       icon: Icons.verified_rounded,
                     ),
                   ],
@@ -763,7 +815,7 @@ class _VerifyCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -776,26 +828,29 @@ class _VerifyCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.navy,
+                color: AppColors.glow,
               ),
             ),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () {
-              Clipboard.setData(const ClipboardData(text: 'https://$_verifyHost'));
+              Clipboard.setData(
+                const ClipboardData(text: 'https://$_verifyHost'),
+              );
               showSnack(context, 'Tautan verifikasi disalin.');
             },
             icon: const Icon(Icons.link_rounded, size: 18),
             label: const Text('Salin Tautan'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(46),
-              foregroundColor: AppColors.navy,
-              side: const BorderSide(color: AppColors.outline),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+              foregroundColor: AppColors.glow,
+              side: const BorderSide(color: AppColors.border),
+              shape: buttonShape,
+              textStyle: const TextStyle(
+                fontFamily: AppFonts.body,
+                fontWeight: FontWeight.w700,
               ),
-              textStyle: const TextStyle(fontFamily: AppFonts.body, fontWeight: FontWeight.w700),
             ),
           ),
         ],

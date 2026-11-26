@@ -27,8 +27,10 @@ class BerandaEventPage extends StatefulWidget {
 
 class _BerandaEventPageState extends State<BerandaEventPage> {
   final TextEditingController _search = TextEditingController();
-  final PageController _pageController =
-      PageController(viewportFraction: 0.92, keepPage: false);
+  final PageController _pageController = PageController(
+    viewportFraction: 0.92,
+    keepPage: false,
+  );
 
   @override
   void dispose() {
@@ -44,6 +46,13 @@ class _BerandaEventPageState extends State<BerandaEventPage> {
     } else {
       showComingSoon(context, 'Eksplorasi event');
     }
+  }
+
+  /// Tarik ke bawah untuk memuat ulang (simulasi; nanti dari API).
+  Future<void> _refresh() async {
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    showSnack(context, 'Daftar event sudah diperbarui.');
   }
 
   void _showNotifications() {
@@ -63,15 +72,16 @@ class _BerandaEventPageState extends State<BerandaEventPage> {
                   style: TextStyle(
                     fontFamily: AppFonts.heading,
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.navy,
+                    letterSpacing: -0.2,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
                   ),
                 ),
                 SizedBox(height: 8),
                 _NotificationTile(
                   icon: Icons.qr_code_2_rounded,
                   title: 'Tiket Workshop UI/UX siap digunakan',
-                  subtitle: 'Buka QR presensi di tab Tiket Saya.',
+                  subtitle: 'Buka QR presensi di tab Event Saya.',
                 ),
                 _NotificationTile(
                   icon: Icons.workspace_premium_rounded,
@@ -93,165 +103,190 @@ class _BerandaEventPageState extends State<BerandaEventPage> {
     final List<CampusEvent> featured = vm.featuredEvents;
     final List<CampusEvent> upcoming = vm.upcomingEvents;
     final bool nothing = featured.isEmpty && upcoming.isEmpty;
-    final double textFactor =
-        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5).toDouble();
+    final double textFactor = MediaQuery.textScalerOf(context)
+        .scale(1)
+        .clamp(1.0, 1.5)
+        .toDouble();
+    final String firstName = student.name.split(' ').first;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 20,
-        title: const Row(
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _refresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.only(bottom: 32),
           children: [
-            AppLogo(size: 34),
-            SizedBox(width: 10),
-            Text('CampusEvent'),
-          ],
-        ),
-        actions: [
-          _NotificationButton(onTap: _showNotifications),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.only(bottom: 28),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                  child: _GreetingRow(student: student),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                  child: TextField(
-                    controller: _search,
-                    textInputAction: TextInputAction.search,
-                    decoration: appInputDecoration(
-                      hint: 'Cari seminar, ormawa, atau sertifikasi...',
-                      prefixIcon: Icons.search_rounded,
-                      suffixIcon: vm.query.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: 'Hapus pencarian',
-                              icon: const Icon(Icons.close_rounded),
-                              onPressed: () {
-                                _search.clear();
-                                vm.clearSearch();
-                              },
-                            ),
-                    ),
-                    onChanged: vm.search,
-                  ),
-                ),
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: vm.categories.length,
-                    separatorBuilder: (BuildContext _, int index) => const SizedBox(width: 8),
-                    itemBuilder: (BuildContext context, int i) {
-                      final String label = vm.categories[i];
-                      final bool selected = vm.category == label;
-                      return ChoiceChip(
-                        label: Text(label),
-                        selected: selected,
-                        showCheckmark: false,
-                        selectedColor: AppColors.navy,
-                        backgroundColor: Colors.white,
-                        labelStyle: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color:
-                              selected ? Colors.white : AppColors.textSecondary,
-                        ),
-                        onSelected: (_) => vm.selectCategory(label),
-                      );
-                    },
-                  ),
-                ),
-                if (nothing)
-                  const EmptyState(
-                    icon: Icons.search_off_rounded,
-                    title: 'Event tidak ditemukan',
-                    message: 'Coba kata kunci lain atau pilih kategori Semua.',
-                  ),
-                if (featured.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SectionHeader(
-                      title: 'Event Unggulan Kampus',
-                      trailingText:
-                          '${vm.featuredIndex + 1} / ${featured.length} '
-                          'Rekomendasi',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 292 * textFactor,
-                    child: PageView.builder(
-                      key: ValueKey<String>(
-                        featured.map((CampusEvent e) => e.id).join(','),
-                      ),
-                      controller: _pageController,
-                      itemCount: featured.length,
-                      onPageChanged: vm.setFeaturedIndex,
-                      itemBuilder: (BuildContext context, int i) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: _FeaturedCard(
-                            event: featured[i],
-                            onTap: () => openEventDetail(context, featured[i]),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-                if (upcoming.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SectionHeader(
-                      title: 'Event Terdekat Minggu Ini',
-                      trailingText: 'Lihat Semua',
-                      onTrailingTap: _openExplore,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  for (final CampusEvent event in upcoming)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      child: EventCard(
-                        event: event,
-                        onTap: () => openEventDetail(context, event),
-                      ),
-                    ),
-                ],
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: SectionHeader(
-                    title: 'Jelajahi Berdasarkan Kategori Ormawa',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _OrmawaGrid(
-                    ormawas: vm.ormawaOptions,
-                    countOf: vm.countByOrmawa,
-                    onTap: (String ormawa) => _openExplore(ormawa: ormawa),
-                  ),
+            HeroHeader(
+              leading: const _Brand(),
+              actions: [
+                CircleIconButton(
+                  icon: Icons.notifications_none_rounded,
+                  tooltip: 'Notifikasi, 2 belum dibaca',
+                  badge: 2,
+                  onPressed: _showNotifications,
                 ),
               ],
+              eyebrow: 'Halo, $firstName',
+              title: 'Mau ikut event apa hari ini?',
+              subtitle: student.identityLine,
+              bottom: TextField(
+                controller: _search,
+                textInputAction: TextInputAction.search,
+                decoration: appInputDecoration(
+                  hint: 'Cari seminar, ormawa, atau sertifikasi...',
+                  prefixIcon: Icons.search_rounded,
+                  suffixIcon: vm.query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Hapus pencarian',
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () {
+                            _search.clear();
+                            vm.clearSearch();
+                          },
+                        ),
+                ),
+                onChanged: vm.search,
+              ),
             ),
-          ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+                itemCount: vm.categories.length,
+                separatorBuilder: (BuildContext _, int index) =>
+                    const SizedBox(width: 8),
+                itemBuilder: (BuildContext context, int i) {
+                  final String label = vm.categories[i];
+                  final bool selected = vm.category == label;
+                  return ChoiceChip(
+                    label: Text(label),
+                    selected: selected,
+                    labelStyle: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? Colors.white : AppColors.textSecondary,
+                    ),
+                    onSelected: (_) => vm.selectCategory(label),
+                  );
+                },
+              ),
+            ),
+            if (nothing)
+              const EmptyState(
+                icon: Icons.search_off_rounded,
+                title: 'Event tidak ditemukan',
+                message: 'Coba kata kunci lain atau pilih kategori Semua.',
+              ),
+            if (featured.isNotEmpty) ...[
+              const SizedBox(height: Gap.section),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+                child: SectionHeader(
+                  eyebrow: 'Rekomendasi',
+                  title: 'Event Unggulan Kampus',
+                  trailingText:
+                      '${vm.featuredIndex + 1} / ${featured.length} Rekomendasi',
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                height: 300 * textFactor,
+                child: PageView.builder(
+                  key: ValueKey<String>(
+                    featured.map((CampusEvent e) => e.id).join(','),
+                  ),
+                  controller: _pageController,
+                  itemCount: featured.length,
+                  onPageChanged: vm.setFeaturedIndex,
+                  itemBuilder: (BuildContext context, int i) {
+                    final String tag = 'unggulan-${featured[i].id}';
+                    // Kartu di samping sedikit mengecil (efek karusel).
+                    return AnimatedBuilder(
+                      animation: _pageController,
+                      builder: (BuildContext context, Widget? child) {
+                        double page = vm.featuredIndex.toDouble();
+                        if (_pageController.hasClients &&
+                            _pageController.position.haveDimensions) {
+                          page = _pageController.page ?? page;
+                        }
+                        final double delta = (page - i).abs().clamp(0.0, 1.0);
+                        return Transform.scale(
+                          scale: 1 - delta * 0.06,
+                          child: child,
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: EventCard(
+                          event: featured[i],
+                          heroTag: tag,
+                          height: double.infinity,
+                          onTap: () => openEventDetail(
+                            context,
+                            featured[i],
+                            heroTag: tag,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              _PageDots(count: featured.length, index: vm.featuredIndex),
+            ],
+            if (upcoming.isNotEmpty) ...[
+              const SizedBox(height: Gap.section),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+                child: SectionHeader(
+                  eyebrow: 'Segera Dimulai',
+                  title: 'Event Terdekat Minggu Ini',
+                  trailingText: 'Lihat Semua',
+                  onTrailingTap: _openExplore,
+                ),
+              ),
+              const SizedBox(height: 18),
+              for (int i = 0; i < upcoming.length; i++)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, 18),
+                  child: Reveal(
+                    index: i,
+                    child: EventCard(
+                      event: upcoming[i],
+                      heroTag: 'beranda-${upcoming[i].id}',
+                      onTap: () => openEventDetail(
+                        context,
+                        upcoming[i],
+                        heroTag: 'beranda-${upcoming[i].id}',
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+            const SizedBox(height: 22),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: Gap.page),
+              child: SectionHeader(
+                eyebrow: 'Ormawa',
+                title: 'Jelajahi Berdasarkan Kategori',
+              ),
+            ),
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+              child: _OrmawaGrid(
+                ormawas: vm.ormawaOptions,
+                countOf: vm.countByOrmawa,
+                onTap: (String ormawa) => _openExplore(ormawa: ormawa),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -262,62 +297,31 @@ class _BerandaEventPageState extends State<BerandaEventPage> {
 // Bagian-bagian halaman
 // ---------------------------------------------------------------------------
 
-class _GreetingRow extends StatelessWidget {
-  const _GreetingRow({required this.student});
-
-  final StudentProfile student;
+class _Brand extends StatelessWidget {
+  const _Brand();
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: AppColors.navy,
-            shape: BoxShape.circle,
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.primaryTint),
           ),
-          child: Text(
-            student.initials,
-            style: const TextStyle(
-              fontFamily: AppFonts.heading,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-          ),
+          child: const AppLogo(size: 26),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Halo,',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-              ),
-              Text(
-                student.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: AppFonts.heading,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.navy,
-                ),
-              ),
-              Text(
-                'NIM ${student.nim} • ${student.program}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
+        const SizedBox(width: 10),
+        const Text(
+          'CampusEvent',
+          style: TextStyle(
+            fontFamily: AppFonts.heading,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: AppColors.ink,
           ),
         ),
       ],
@@ -325,176 +329,33 @@ class _GreetingRow extends StatelessWidget {
   }
 }
 
-class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({required this.onTap});
+/// Titik penanda posisi kartu unggulan.
+class _PageDots extends StatelessWidget {
+  const _PageDots({required this.count, required this.index});
 
-  final VoidCallback onTap;
+  final int count;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(
-          tooltip: 'Notifikasi, 2 belum dibaca',
-          color: AppColors.navy,
-          icon: const Icon(Icons.notifications_none_rounded, size: 28),
-          onPressed: onTap,
-        ),
-        Positioned(
-          right: 6,
-          top: 6,
-          child: IgnorePointer(
-            child: Container(
-              width: 18,
-              height: 18,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.background, width: 2),
-              ),
-              child: const Text(
-                '2',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.accentDark,
-                ),
-              ),
+        for (int i = 0; i < count; i++)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: i == index ? 22 : 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: i == index ? AppColors.glow : AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(3),
+              boxShadow: i == index
+                  ? const [BoxShadow(color: Color(0x668FB0FF), blurRadius: 8)]
+                  : null,
             ),
           ),
-        ),
       ],
-    );
-  }
-}
-
-class _FeaturedCard extends StatelessWidget {
-  const _FeaturedCard({required this.event, required this.onTap});
-
-  final CampusEvent event;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final CategoryStyle style = categoryStyle(event.category);
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Ink(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: style.colors,
-          ),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          child: Stack(
-            children: [
-              Positioned(
-                right: -16,
-                top: -10,
-                child: Icon(
-                  style.icon,
-                  size: 150,
-                  color: Colors.white.withAlpha(36),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: [
-                            const PillBadge(text: 'Gratis Bersertifikat SKPI'),
-                            PillBadge.glass(text: event.quotaLabel),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          event.organizer,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withAlpha(215),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          event.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: AppFonts.heading,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            height: 1.2,
-                            letterSpacing: -0.4,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              InfoLine(
-                                icon: Icons.event_rounded,
-                                text: event.dateTimeShort,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(height: 6),
-                              InfoLine(
-                                icon: Icons.place_rounded,
-                                text: event.location,
-                                color: Colors.white,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        FilledButton(
-                          onPressed: onTap,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            foregroundColor: AppColors.accentDark,
-                            minimumSize: const Size(84, 44),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            textStyle: const TextStyle(
-                              fontFamily: AppFonts.body,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          child: const Text('Daftar'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -523,11 +384,11 @@ class _OrmawaGrid extends StatelessWidget {
       children: [
         for (int i = 0; i < ormawas.length; i += 2)
           Padding(
-            padding: EdgeInsets.only(top: i == 0 ? 0 : 12),
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 14),
             child: Row(
               children: [
                 Expanded(child: _tile(ormawas[i])),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: i + 1 < ormawas.length
                       ? _tile(ormawas[i + 1])
@@ -543,53 +404,54 @@ class _OrmawaGrid extends StatelessWidget {
   Widget _tile(String name) {
     final int count = countOf(name);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: AppColors.surfaceHigh),
-      ),
-      child: InkWell(
-        onTap: () => onTap(name),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLow,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(_icons[name], size: 22, color: AppColors.navy),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Pressable(
+      child: Material(
+        color: AppColors.surface,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        child: InkWell(
+          onTap: () => onTap(name),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                    IconSquare(
+                      icon: _icons[name] ?? Icons.groups_rounded,
+                      size: 40,
                     ),
-                    Text(
-                      '$count event',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                      ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.north_east_rounded,
+                      size: 18,
+                      color: AppColors.textMuted,
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                CaptionText(
+                  '$count EVENT',
+                  size: 11,
+                  color: AppColors.textMuted,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -613,8 +475,8 @@ class _NotificationTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
-        backgroundColor: AppColors.surfaceLow,
-        child: Icon(icon, color: AppColors.navy),
+        backgroundColor: AppColors.primarySoft,
+        child: Icon(icon, color: AppColors.glow),
       ),
       title: Text(
         title,

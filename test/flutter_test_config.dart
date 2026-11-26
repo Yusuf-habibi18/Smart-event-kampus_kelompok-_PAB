@@ -3,35 +3,54 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-/// Memuat font Roboto (bawaan SDK Flutter) sebelum test dijalankan.
+/// Memuat font aplikasi sebelum test dijalankan.
 ///
-/// Font "Inter" & "Plus Jakarta Sans" belum dibundel di pubspec, sehingga di
-/// Android aplikasi tampil dengan Roboto. Tanpa langkah ini, `flutter test`
-/// memakai font kotak-kotak yang jauh lebih lebar dan pengecekan overflow
-/// menjadi tidak realistis.
+/// `flutter test` tidak memuat font dari pubspec secara otomatis, sehingga
+/// tanpa langkah ini teks digambar dengan font kotak-kotak yang jauh lebih
+/// lebar dan pengecekan overflow menjadi tidak realistis.
+/// - Inter & Plus Jakarta Sans: dari assets/fonts (sama dengan aplikasi).
+/// - Roboto: dari cache SDK Flutter (dipakai sebagai cadangan).
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
-  final Directory? fontsDir = _findMaterialFonts();
-  if (fontsDir != null) {
-    const List<String> weights = [
-      'roboto-regular.ttf',
-      'roboto-medium.ttf',
-      'roboto-bold.ttf',
-      'roboto-black.ttf',
-      'roboto-italic.ttf',
-    ];
-    for (final String family in ['Inter', 'Plus Jakarta Sans', 'Roboto']) {
-      final FontLoader loader = FontLoader(family);
-      for (final String file in weights) {
-        final File font = File('${fontsDir.path}/$file');
-        if (font.existsSync()) {
-          final Uint8List bytes = font.readAsBytesSync();
-          loader.addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
-        }
-      }
-      await loader.load();
-    }
+  await _loadFamily('Inter', _assetFonts('Inter-'));
+  await _loadFamily('Plus Jakarta Sans', _assetFonts('PlusJakartaSans-'));
+
+  final Directory? materialFonts = _findMaterialFonts();
+  if (materialFonts != null) {
+    await _loadFamily('Roboto', [
+      for (final String file in [
+        'roboto-regular.ttf',
+        'roboto-medium.ttf',
+        'roboto-bold.ttf',
+      ])
+        File('${materialFonts.path}/$file'),
+    ]);
   }
   await testMain();
+}
+
+List<File> _assetFonts(String prefix) {
+  final Directory dir = Directory('assets/fonts');
+  if (!dir.existsSync()) return const [];
+  return dir
+      .listSync()
+      .whereType<File>()
+      .where((File f) {
+        final String name = f.uri.pathSegments.last;
+        return name.startsWith(prefix) && name.endsWith('.ttf');
+      })
+      .toList();
+}
+
+Future<void> _loadFamily(String family, List<File> files) async {
+  final FontLoader loader = FontLoader(family);
+  bool any = false;
+  for (final File font in files) {
+    if (!font.existsSync()) continue;
+    final Uint8List bytes = font.readAsBytesSync();
+    loader.addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
+    any = true;
+  }
+  if (any) await loader.load();
 }
 
 /// Mencari folder `bin/cache/artifacts/material_fonts` di instalasi Flutter.

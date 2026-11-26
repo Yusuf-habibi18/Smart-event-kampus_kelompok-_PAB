@@ -4,12 +4,17 @@ import 'package:provider/provider.dart';
 import '../../core/app_routes.dart';
 import '../../core/app_theme.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../mahasiswa/mahasiswa_widgets.dart';
 
-/// View: halaman login.
+/// View: halaman masuk.
 ///
-/// Peran terpilih, status loading, validasi, dan proses login ada di
-/// [AuthViewModel]. View hanya menyimpan controller input dan state tampilan
-/// (sembunyikan/tampilkan kata sandi).
+/// Peran, pilihan jenis peserta, status loading, validasi, dan proses login
+/// ada di [AuthViewModel]. View hanya menyimpan controller input dan state
+/// tampilan (sembunyikan/tampilkan kata sandi).
+///
+/// Peserta memilih "Saya mahasiswa ITPLN" atau "Saya peserta umum" agar
+/// petunjuk kolom email sesuai; jenis akun akhirnya tetap ditentukan dari
+/// domain email.
 class MasukSmartCampusEvent extends StatefulWidget {
   const MasukSmartCampusEvent({super.key});
 
@@ -33,21 +38,23 @@ class _MasukSmartCampusEventState extends State<MasukSmartCampusEvent> {
 
   // --- Teks yang berbeda untuk tiap peran ---------------------------------
 
-  static String _idLabel(UserRole role) {
+  static String _idLabel(UserRole role, PesertaType peserta) {
     switch (role) {
-      case UserRole.mahasiswa:
-        return 'Nomor Induk Mahasiswa (NIM)';
+      case UserRole.peserta:
+        return peserta == PesertaType.mahasiswaItpln ? 'Email kampus' : 'Email';
       case UserRole.ormawa:
-        return 'ID Ormawa atau Email Penyelenggara';
+        return 'ID Ormawa atau email penyelenggara';
       case UserRole.admin:
         return 'ID Pegawai BKA (NIP)';
     }
   }
 
-  static String _idHint(UserRole role) {
+  static String _idHint(UserRole role, PesertaType peserta) {
     switch (role) {
-      case UserRole.mahasiswa:
-        return '2110512044';
+      case UserRole.peserta:
+        return peserta == PesertaType.mahasiswaItpln
+            ? 'nim@itpln.ac.id'
+            : 'nama@gmail.com';
       case UserRole.ormawa:
         return 'hima.informatika@kampus.ac.id';
       case UserRole.admin:
@@ -55,13 +62,13 @@ class _MasukSmartCampusEventState extends State<MasukSmartCampusEvent> {
     }
   }
 
-  static TextInputType _idKeyboard(UserRole role) {
+  static IconData _idIcon(UserRole role) {
     switch (role) {
-      case UserRole.mahasiswa:
-      case UserRole.admin:
-        return TextInputType.number;
+      case UserRole.peserta:
       case UserRole.ormawa:
-        return TextInputType.emailAddress;
+        return Icons.alternate_email_rounded;
+      case UserRole.admin:
+        return Icons.badge_outlined;
     }
   }
 
@@ -75,30 +82,43 @@ class _MasukSmartCampusEventState extends State<MasukSmartCampusEvent> {
     _formKey.currentState?.reset();
   }
 
+  void _choosePeserta(PesertaType type) {
+    context.read<AuthViewModel>().choosePeserta(type);
+    _formKey.currentState?.reset();
+  }
+
   /// Alur data: input → _idController → AuthViewModel.login() →
-  /// Navigator ke Beranda → NIM tampil di Beranda, Profil, dan E-Tiket.
+  /// Navigator ke beranda peran → identitas tampil di Beranda & Profil.
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final AuthViewModel auth = context.read<AuthViewModel>();
     final NavigatorState navigator = Navigator.of(context);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final bool choseUmum =
+        auth.role == UserRole.peserta && auth.pesertaChoice == PesertaType.umum;
+
     await auth.login(
       id: _idController.text,
       password: _passwordController.text,
     );
-
     if (!mounted) return;
+
+    // Peserta umum yang ternyata memakai email kampus otomatis jadi mahasiswa.
+    if (choseUmum && auth.isMahasiswa) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Email kampus terdeteksi: kamu masuk sebagai Mahasiswa ITPLN.',
+          ),
+        ),
+      );
+    }
     navigator.pushNamedAndRemoveUntil(
       auth.role.homeRoute,
       (Route<dynamic> route) => false,
     );
-  }
-
-  void _showInfo(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   // --- UI ------------------------------------------------------------------
@@ -107,236 +127,196 @@ class _MasukSmartCampusEventState extends State<MasukSmartCampusEvent> {
   Widget build(BuildContext context) {
     final AuthViewModel auth = context.watch<AuthViewModel>();
     final UserRole role = auth.role;
+    final PesertaType peserta = auth.pesertaChoice;
     final bool loading = auth.isLoading;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _BrandHeader(),
-                    const SizedBox(height: 28),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentSoft,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.verified_rounded,
-                            size: 14,
-                            color: AppColors.accentDark,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Portal Terintegrasi Kampus',
-                            style: TextStyle(
-                              color: AppColors.accentDark,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+      body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        child: Column(
+          children: [
+            const _LoginHero(),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const EyebrowText(text: 'Masuk sebagai'),
+                        const SizedBox(height: 12),
+                        _RoleSelector(selected: role, onChanged: _changeRole),
+                        const SizedBox(height: 14),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: Text(
+                            role.description,
+                            key: ValueKey<UserRole>(role),
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              height: 1.45,
+                              color: AppColors.textMuted,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Selamat Datang Kembali',
-                      style: TextStyle(
-                        fontFamily: AppFonts.heading,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        height: 1.2,
-                        color: AppColors.navy,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Akses tiket kegiatan, registrasi ormawa, dan perizinan '
-                      'ruang kampus dalam satu genggaman.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.5,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    const Text(
-                      'Pilih Peran Anda',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _RoleSelector(selected: role, onChanged: _changeRole),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _idController,
-                      enabled: !loading,
-                      keyboardType: _idKeyboard(role),
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.username],
-                      decoration: appInputDecoration(
-                        label: _idLabel(role),
-                        hint: _idHint(role),
-                        prefixIcon: Icons.badge_outlined,
-                      ),
-                      validator: (String? v) => auth.validateId(v, label: _idLabel(role)),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      enabled: !loading,
-                      obscureText: _obscure,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) => _submit(),
-                      decoration: appInputDecoration(
-                        label: 'Kata Sandi',
-                        prefixIcon: Icons.lock_outline_rounded,
-                        suffixIcon: IconButton(
-                          tooltip: _obscure
-                              ? 'Tampilkan kata sandi'
-                              : 'Sembunyikan kata sandi',
-                          icon: Icon(
-                            _obscure
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            color: AppColors.textMuted,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscure = !_obscure),
                         ),
-                      ),
-                      validator: auth.validatePassword,
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => _showInfo(
-                          'Reset kata sandi dilakukan lewat portal SSO atau '
-                          'Helpdesk BKA.',
-                        ),
-                        child: const Text('Lupa kata sandi?'),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: loading ? null : _submit,
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        textStyle: const TextStyle(
-                          fontFamily: AppFonts.heading,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      child: loading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Masuk ke Portal'),
-                    ),
-                    const SizedBox(height: 20),
-                    const _OrDivider(),
-                    const SizedBox(height: 20),
-                    OutlinedButton.icon(
-                      onPressed: loading
-                          ? null
-                          : () => _showInfo(
-                                'Login SSO akan aktif setelah terhubung ke '
-                                'SIAKAD kampus.',
-                              ),
-                      icon: const Icon(Icons.vpn_key_outlined, size: 20),
-                      label: const Text('Masuk dengan Akun SSO Kampus'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(54),
-                        foregroundColor: AppColors.navy,
-                        side: const BorderSide(color: AppColors.outline),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        textStyle: const TextStyle(
-                          fontFamily: AppFonts.body,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    if (role == UserRole.ormawa) ...[
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceLow,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Belum punya akun penyelenggara?',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textSecondary,
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: role != UserRole.peserta
+                              ? const SizedBox(width: double.infinity)
+                              : Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    const SizedBox(height: 24),
+                                    for (final PesertaType type
+                                        in PesertaType.values) ...[
+                                      _PesertaChoice(
+                                        type: type,
+                                        selected: type == peserta,
+                                        onTap: () => _choosePeserta(type),
+                                      ),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  ],
                                 ),
+                        ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _idController,
+                          enabled: !loading,
+                          keyboardType: role == UserRole.admin
+                              ? TextInputType.number
+                              : TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.username],
+                          decoration: appInputDecoration(
+                            label: _idLabel(role, peserta),
+                            hint: _idHint(role, peserta),
+                            prefixIcon: _idIcon(role),
+                          ),
+                          validator: (String? v) => auth.validateId(
+                            v,
+                            label: _idLabel(role, peserta),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        TextFormField(
+                          controller: _passwordController,
+                          enabled: !loading,
+                          obscureText: _obscure,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          onFieldSubmitted: (_) => _submit(),
+                          decoration: appInputDecoration(
+                            label: 'Kata sandi',
+                            prefixIcon: Icons.lock_outline_rounded,
+                            suffixIcon: IconButton(
+                              tooltip: _obscure
+                                  ? 'Tampilkan kata sandi'
+                                  : 'Sembunyikan kata sandi',
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                               ),
                             ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context)
-                                  .pushNamed(AppRoutes.pengajuanAkun),
-                              child: const Text('Ajukan akun'),
+                          ),
+                          validator: auth.validatePassword,
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => showSnack(
+                              context,
+                              'Reset kata sandi dilakukan lewat Helpdesk BKA.',
+                            ),
+                            child: const Text('Lupa kata sandi?'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Pressable(
+                          child: DecoratedBox(
+                            decoration: const BoxDecoration(
+                              boxShadow: AppShadows.lift,
+                            ),
+                            child: FilledButton(
+                              onPressed: loading ? null : _submit,
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(54),
+                              ),
+                              child: loading
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Masuk ke Portal'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        if (role == UserRole.peserta)
+                          _FooterLink(
+                            question: 'Belum punya akun?',
+                            action: 'Daftar sekarang',
+                            onTap: () =>
+                                Navigator.of(context)
+                                    .pushNamed(AppRoutes.daftarAkun),
+                          ),
+                        if (role == UserRole.ormawa)
+                          _FooterLink(
+                            question: 'Belum punya akun penyelenggara?',
+                            action: 'Ajukan akun',
+                            onTap: () =>
+                                Navigator.of(context)
+                                    .pushNamed(AppRoutes.pengajuanAkun),
+                          ),
+                        const SizedBox(height: 28),
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.shield_outlined,
+                              size: 14,
+                              color: AppColors.textMuted,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Data kamu aman dan terlindungi',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.textMuted,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 28),
-                    const Center(
-                      child: Text(
-                        'Dilindungi enkripsi SSL 256-bit\n'
-                        'Biro Kemahasiswaan & Alumni (BKA)',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          height: 1.6,
-                          color: AppColors.textMuted,
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Biro Kemahasiswaan & Alumni (BKA)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            letterSpacing: 0.4,
+                            color: AppColors.textMuted,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -344,42 +324,117 @@ class _MasukSmartCampusEventState extends State<MasukSmartCampusEvent> {
 }
 
 // ---------------------------------------------------------------------------
-// Widget pendukung
+// Bagian-bagian halaman
 // ---------------------------------------------------------------------------
 
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader();
+class _LoginHero extends StatelessWidget {
+  const _LoginHero();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Asset Image: logo aplikasi dari assets/images/logo.png.
-        Image.asset(
-          AppImages.logo,
-          width: 48,
-          height: 48,
-          semanticLabel: 'Logo CampusEvent',
+        // Foto kampus yang memudar ke warna latar halaman.
+        SizedBox(
+          height: 230,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                AppImages.campus,
+                fit: BoxFit.cover,
+                semanticLabel: 'Foto gedung kampus',
+                errorBuilder: (BuildContext _, Object _, StackTrace? _) =>
+                    const ColoredBox(color: AppColors.primarySoft),
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0, 0.45, 1],
+                    colors: [
+                      Color(0x590A1A2F),
+                      Color(0x000A1A2F),
+                      AppColors.background,
+                    ],
+                  ),
+                ),
+              ),
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: AppShadows.raised,
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppLogo(size: 30),
+                          SizedBox(width: 10),
+                          Text(
+                            'CampusEvent',
+                            style: TextStyle(
+                              fontFamily: AppFonts.heading,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(width: 12),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'CampusEvent',
-              style: TextStyle(
-                fontFamily: AppFonts.heading,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-                color: AppColors.navy,
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  EyebrowText(text: 'Portal event kampus ITPLN'),
+                  SizedBox(height: 10),
+                  Text(
+                    'Selamat Datang Kembali',
+                    style: TextStyle(
+                      fontFamily: AppFonts.heading,
+                      fontSize: 30,
+                      height: 1.12,
+                      letterSpacing: -0.6,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Cari event kampus, simpan tiket, dan kumpulkan '
+                    'sertifikat dalam satu aplikasi.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Text(
-              'Universitas Terpadu',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-            ),
-          ],
+          ),
         ),
       ],
     );
@@ -424,37 +479,127 @@ class _RoleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color foreground = isSelected ? Colors.white : AppColors.textSecondary;
+    final Color foreground = isSelected ? Colors.white : AppColors.textMuted;
 
     return Semantics(
       button: true,
       selected: isSelected,
       label: 'Peran ${role.label}',
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          boxShadow: isSelected ? AppShadows.lift : null,
+        ),
+        child: Material(
+          color: isSelected ? AppColors.primary : AppColors.surface,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            side: BorderSide(
+              color: isSelected ? AppColors.primary : AppColors.border,
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(role.icon, size: 22, color: foreground),
+                  const SizedBox(height: 6),
+                  Text(
+                    role.label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: foreground,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Kartu pilihan "Saya mahasiswa ITPLN" / "Saya peserta umum".
+class _PesertaChoice extends StatelessWidget {
+  const _PesertaChoice({
+    required this.type,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final PesertaType type;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final String title = type == PesertaType.mahasiswaItpln
+        ? 'Saya mahasiswa ITPLN'
+        : 'Saya peserta umum';
+
+    return Semantics(
+      button: true,
+      selected: selected,
       child: Material(
-        color: isSelected ? AppColors.navy : Colors.white,
+        color: selected ? AppColors.primarySoft : AppColors.surface,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           side: BorderSide(
-            color: isSelected ? AppColors.navy : AppColors.outline,
+            color: selected ? AppColors.glow : AppColors.border,
+            width: selected ? 1.5 : 1,
           ),
         ),
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            padding: const EdgeInsets.all(14),
+            child: Row(
               children: [
-                Icon(role.icon, size: 22, color: foreground),
-                const SizedBox(height: 6),
-                Text(
-                  role.label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: foreground,
+                IconSquare(
+                  icon: type.icon,
+                  size: 42,
+                  color: selected ? Colors.white : AppColors.glow,
+                  background: selected
+                      ? AppColors.primary
+                      : AppColors.primarySoft,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        type.hint,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                Icon(
+                  selected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_off_rounded,
+                  color: selected ? AppColors.glow : AppColors.outline,
                 ),
               ],
             ),
@@ -465,23 +610,36 @@ class _RoleTile extends StatelessWidget {
   }
 }
 
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
+class _FooterLink extends StatelessWidget {
+  const _FooterLink({
+    required this.question,
+    required this.action,
+    required this.onTap,
+  });
+
+  final String question;
+  final String action;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(child: Divider(color: AppColors.outline, height: 1)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'atau',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
+      decoration: AppDecorations.card(radius: AppRadius.md),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              question,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
-        ),
-        Expanded(child: Divider(color: AppColors.outline, height: 1)),
-      ],
+          TextButton(onPressed: onTap, child: Text(action)),
+        ],
+      ),
     );
   }
 }

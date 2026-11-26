@@ -35,23 +35,24 @@ class TiketEventPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
                     children: [
                       _TicketCard(ticket: ticket, student: student),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       FilledButton.icon(
                         onPressed: () =>
                             showComingSoon(context, 'Unduh Tiket (PDF)'),
-                        icon: const Icon(Icons.picture_as_pdf_rounded, size: 20),
+                        icon: const Icon(
+                          Icons.picture_as_pdf_rounded,
+                          size: 20,
+                        ),
                         label: const Text('Unduh Tiket (PDF)'),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          shape: buttonShape,
                           textStyle: const TextStyle(
                             fontFamily: AppFonts.body,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -65,18 +66,16 @@ class TiketEventPage extends StatelessWidget {
                         label: const Text('Tambah ke Google Calendar'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(52),
-                          foregroundColor: AppColors.navy,
-                          side: const BorderSide(color: AppColors.outline),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          foregroundColor: AppColors.glow,
+                          side: const BorderSide(color: AppColors.border),
+                          shape: buttonShape,
                           textStyle: const TextStyle(
                             fontFamily: AppFonts.body,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       const _GateGuide(),
                     ],
                   ),
@@ -104,9 +103,9 @@ class _TicketCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.surfaceHigh),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x14000000),
@@ -121,13 +120,11 @@ class _TicketCard extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.navyLight, AppColors.navy],
+            decoration: AppDecorations.brandPanel(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
               ),
+              shadow: false,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,18 +142,18 @@ class _TicketCard extends StatelessWidget {
                             text: 'Terdaftar (Tiket Siap)',
                             icon: Icons.confirmation_number_rounded,
                           ),
-                    const PillBadge.glass(text: 'Reg. Fast-Pass'),
+                    const PillBadge.glass(text: 'Masuk Tanpa Antre'),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Text(
                   ticket.title,
                   style: const TextStyle(
                     fontFamily: AppFonts.heading,
                     fontSize: 21,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     height: 1.25,
-                    letterSpacing: -0.3,
+                    letterSpacing: -0.1,
                     color: Colors.white,
                   ),
                 ),
@@ -165,7 +162,7 @@ class _TicketCard extends StatelessWidget {
                   ticket.organizer,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: AppColors.periwinkle,
+                    color: Color(0xD9FFFFFF),
                   ),
                 ),
               ],
@@ -183,7 +180,9 @@ class _TicketCard extends StatelessWidget {
                       child: _Field(
                         label: 'Peserta Terdaftar',
                         value: student.name,
-                        sub: 'NIM: ${student.nim}',
+                        sub: student.isMahasiswa
+                            ? 'NIM: ${student.nim}'
+                            : student.email,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -197,7 +196,7 @@ class _TicketCard extends StatelessWidget {
                   ],
                 ),
                 if (phone != null || participation != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -218,13 +217,13 @@ class _TicketCard extends StatelessWidget {
                   ),
                 ],
                 if (track != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     child: _Field(label: 'Peminatan', value: track),
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -250,7 +249,7 @@ class _TicketCard extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: 'Siap Scan di Lokasi',
-                                style: TextStyle(fontWeight: FontWeight.w800),
+                                style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ],
                           ),
@@ -263,7 +262,7 @@ class _TicketCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -297,21 +296,24 @@ class _TicketCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.heading,
                     fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.navy,
+                    letterSpacing: -0.2,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
                   ),
                 ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppColors.outline, width: 2),
+                const SizedBox(height: 16),
+                PopIn(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.outline, width: 2),
+                    ),
+                    child: QrCodeView(data: ticket.ticketId, size: 190),
                   ),
-                  child: QrCodeView(data: ticket.ticketId, size: 190),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Text(
                   'Tunjukkan QR ini ke panitia di pintu masuk '
                   '${ticket.location}',
@@ -322,9 +324,9 @@ class _TicketCard extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 const Text(
-                  'Smart Pass ID',
+                  'Kode Tiket',
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                 ),
                 const SizedBox(height: 2),
@@ -332,7 +334,7 @@ class _TicketCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: ticket.ticketId));
-                    showSnack(context, 'Smart Pass ID disalin.');
+                    showSnack(context, 'Kode tiket disalin.');
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -346,9 +348,9 @@ class _TicketCard extends StatelessWidget {
                           ticket.ticketId,
                           style: const TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             letterSpacing: 1.5,
-                            color: AppColors.navy,
+                            color: AppColors.glow,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -363,7 +365,7 @@ class _TicketCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Ref ID: ${ticket.refId} • Sistem Terintegrasi SIAKAD',
+                  'No. Referensi: ${ticket.refId}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 11,
@@ -372,7 +374,7 @@ class _TicketCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 const Text(
-                  'Validasi Otomatis Smart Campus • Anti-Duplikasi',
+                  'Satu tiket hanya berlaku untuk satu orang.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                 ),
@@ -403,8 +405,9 @@ class _Field extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -416,9 +419,9 @@ class _Field extends StatelessWidget {
           style: TextStyle(
             fontFamily: big ? AppFonts.heading : null,
             fontSize: big ? 26 : 14,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             height: 1.25,
-            color: big ? AppColors.navy : AppColors.textPrimary,
+            color: big ? AppColors.primary : AppColors.textPrimary,
           ),
         ),
         if (sub != null)
@@ -498,15 +501,15 @@ class _GateGuide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.accentSoft.withAlpha(110),
+        color: AppColors.primarySoft.withAlpha(110),
         borderRadius: BorderRadius.circular(18),
       ),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, color: AppColors.accentDark),
+          Icon(Icons.info_outline_rounded, color: AppColors.glow),
           SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -516,8 +519,8 @@ class _GateGuide extends StatelessWidget {
                   'Panduan Gate Masuk',
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.accentDark,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.glow,
                   ),
                 ),
                 SizedBox(height: 4),
@@ -528,7 +531,7 @@ class _GateGuide extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
-                    color: AppColors.accentDark,
+                    color: AppColors.glow,
                   ),
                 ),
               ],

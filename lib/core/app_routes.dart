@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/user_role.dart';
+import '../screens/admin/admin_shell.dart';
+import '../screens/auth/daftar_akun_page.dart';
 import '../screens/auth/login_page.dart';
 import '../screens/mahasiswa/mahasiswa_shell.dart';
 import '../screens/mahasiswa/sertifikat_page.dart';
+import '../screens/panitia/form_proposal_page.dart';
+import '../screens/panitia/ormawa_shell.dart';
+import '../screens/panitia/pengajuan_akun_page.dart';
 import '../screens/umum/pengaturan_page.dart';
 import '../screens/umum/splash_screen.dart';
 import 'app_theme.dart';
@@ -14,7 +19,7 @@ export '../models/user_role.dart';
 extension UserRoleRoute on UserRole {
   String get homeRoute {
     switch (this) {
-      case UserRole.mahasiswa:
+      case UserRole.peserta:
         return AppRoutes.berandaMahasiswa;
       case UserRole.ormawa:
         return AppRoutes.dashboardPanitia;
@@ -26,9 +31,10 @@ extension UserRoleRoute on UserRole {
 
 /// Daftar route bernama (named route).
 ///
-/// Halaman yang membutuhkan data (Detail Event & E-Tiket) dibuka langsung
-/// dengan `Navigator.push()` + `MaterialPageRoute` dan menerima datanya
-/// lewat constructor. Lihat `openEventDetail()` di mahasiswa_widgets.dart.
+/// Halaman yang membutuhkan data (Detail Event, E-Tiket, Edit Event, Review
+/// Proposal) dibuka langsung dengan `Navigator.push()` + `MaterialPageRoute`
+/// dan menerima datanya lewat constructor. Lihat `openEventDetail()` di
+/// mahasiswa_widgets.dart dan `openEditEvent()` di panitia_widgets.dart.
 class AppRoutes {
   AppRoutes._();
 
@@ -36,14 +42,16 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String pengaturan = '/pengaturan';
+  static const String daftarAkun = '/daftar';
 
-  // Mahasiswa / Visitor
+  // Peserta (mahasiswa ITPLN & umum)
   static const String berandaMahasiswa = '/mahasiswa/beranda';
   static const String sertifikat = '/mahasiswa/sertifikat';
 
   // Panitia (Ormawa)
   static const String dashboardPanitia = '/panitia/dashboard';
   static const String pengajuanAkun = '/panitia/pengajuan-akun';
+  static const String formProposal = '/panitia/proposal-baru';
 
   // Admin
   static const String dashboardAdmin = '/admin/dashboard';
@@ -61,6 +69,9 @@ class AppRoutes {
       case pengaturan:
         page = const PengaturanUmumSmartCampusEvent();
         break;
+      case daftarAkun:
+        page = const DaftarAkunPage();
+        break;
       case berandaMahasiswa:
         page = const MahasiswaShell();
         break;
@@ -68,15 +79,17 @@ class AppRoutes {
         page = const SertifikatPage(showBackButton: true);
         break;
 
-      // TODO: ganti PlaceholderPage dengan halaman asli modul Panitia & Admin.
       case dashboardPanitia:
-        page = const PlaceholderPage(title: 'Dashboard Panitia Event');
+        page = const OrmawaShell();
         break;
       case pengajuanAkun:
-        page = const PlaceholderPage(title: 'Pengajuan Akun Penyelenggara');
+        page = const PengajuanAkunPage();
+        break;
+      case formProposal:
+        page = const FormProposalPage();
         break;
       case dashboardAdmin:
-        page = const PlaceholderPage(title: 'Dashboard Admin');
+        page = const AdminShell();
         break;
 
       default:
@@ -118,8 +131,9 @@ class PlaceholderPage extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: AppFonts.heading,
                   fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.navy,
+                  letterSpacing: -0.4,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 8),

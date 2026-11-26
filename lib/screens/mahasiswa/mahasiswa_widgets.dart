@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
 import '../../models/campus_event.dart';
 import '../../models/event_ticket.dart';
+import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/ticket_viewmodel.dart';
+import '../umum/ui_kit.dart';
 import 'detail_event_page.dart';
 import 'tiket_event_page.dart';
+
+export '../umum/ui_kit.dart';
 
 // ---------------------------------------------------------------------------
 // Helper umum
@@ -54,11 +60,19 @@ Future<bool> confirmDialog(
 
 /// Navigasi: kartu event (Beranda / Eksplorasi) → DetailEventPage.
 /// Objek [event] dikirim ke halaman tujuan lewat constructor.
-void openEventDetail(BuildContext context, CampusEvent event) {
+///
+/// [heroTag] menghubungkan foto di kartu dengan foto di halaman detail
+/// (animasi Hero). Tag harus unik per layar, mis. 'beranda-3'.
+void openEventDetail(
+  BuildContext context,
+  CampusEvent event, {
+  String? heroTag,
+}) {
   Navigator.push(
     context,
     MaterialPageRoute<void>(
-      builder: (BuildContext context) => DetailEventPage(event: event),
+      builder: (BuildContext context) =>
+          DetailEventPage(event: event, heroTag: heroTag),
     ),
   );
 }
@@ -100,30 +114,33 @@ class CategoryStyle {
 
   final List<Color> colors;
   final IconData icon;
+
+  /// Warna dasar poster (polos, tanpa gradasi).
+  Color get color => colors.first;
 }
 
 CategoryStyle categoryStyle(String category) {
   switch (category) {
     case 'Kompetisi':
-      return const CategoryStyle(
-        [Color(0xFF0F766E), Color(0xFF14B8A6)],
-        Icons.emoji_events_rounded,
-      );
+      return const CategoryStyle([
+        Color(0xFF1F7A5A),
+        Color(0xFF2E9A74),
+      ], Icons.emoji_events_rounded);
     case 'Seni & Musik':
-      return const CategoryStyle(
-        [Color(0xFF9D174D), Color(0xFFEC4899)],
-        Icons.palette_rounded,
-      );
+      return const CategoryStyle([
+        Color(0xFF3550B5),
+        Color(0xFF4A66C9),
+      ], Icons.palette_rounded);
     case 'Workshop':
-      return const CategoryStyle(
-        [Color(0xFF92400E), Color(0xFFD97706)],
-        Icons.design_services_rounded,
-      );
+      return const CategoryStyle([
+        AppColors.primaryHover,
+        Color(0xFF1D5FD0),
+      ], Icons.design_services_rounded);
     default:
-      return const CategoryStyle(
-        [AppColors.navyLight, AppColors.navy],
-        Icons.school_rounded,
-      );
+      return const CategoryStyle([
+        AppColors.primary,
+        AppColors.primaryHover,
+      ], Icons.school_rounded);
   }
 }
 
@@ -131,7 +148,7 @@ CategoryStyle categoryStyle(String category) {
 // Header & section
 // ---------------------------------------------------------------------------
 
-/// AppBar standar halaman: judul + subjudul opsional + tombol kembali.
+/// AppBar standar halaman: tombol kembali bulat, judul + subjudul.
 class ScreenAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ScreenAppBar({
     super.key,
@@ -148,20 +165,31 @@ class ScreenAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> actions;
   final PreferredSizeWidget? bottom;
 
-  static const double _toolbarHeight = 64;
+  static const double _toolbarHeight = 68;
 
   @override
-  Size get preferredSize => Size.fromHeight(
-        _toolbarHeight + (bottom?.preferredSize.height ?? 0),
-      );
+  Size get preferredSize =>
+      Size.fromHeight(_toolbarHeight + (bottom?.preferredSize.height ?? 0));
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
       toolbarHeight: _toolbarHeight,
       automaticallyImplyLeading: false,
-      titleSpacing: showBack ? 0 : 20,
-      leading: showBack ? const BackButton() : null,
+      titleSpacing: showBack ? 4 : 20,
+      leadingWidth: showBack ? 64 : null,
+      leading: showBack
+          ? Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: Center(
+                child: CircleIconButton(
+                  icon: Icons.arrow_back_rounded,
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
+              ),
+            )
+          : null,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -173,66 +201,115 @@ class ScreenAppBar extends StatelessWidget implements PreferredSizeWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontFamily: AppFonts.body,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.4,
                 color: AppColors.textMuted,
               ),
             ),
         ],
       ),
-      actions: [...actions, const SizedBox(width: 8)],
+      actions: [...actions, const SizedBox(width: 12)],
       bottom: bottom,
     );
   }
 }
 
+/// Label kecil di atas judul (pola "eyebrow").
+class Eyebrow extends StatelessWidget {
+  const Eyebrow({
+    super.key,
+    required this.text,
+    this.color = AppColors.glow,
+    this.background = AppColors.primarySoft,
+  });
+
+  /// Versi untuk di atas panel biru.
+  const Eyebrow.onDark({super.key, required this.text})
+    : color = Colors.white,
+      background = const Color(0x1FFFFFFF);
+
+  final String text;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) => EyebrowText(text: text, color: color);
+}
+
+/// Judul section + tautan opsional di kanan ("Lihat Semua →").
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
     required this.title,
     this.trailingText,
     this.onTrailingTap,
+    this.eyebrow,
   });
 
   final String title;
   final String? trailingText;
   final VoidCallback? onTrailingTap;
 
+  /// Label kecil di atas judul (opsional).
+  final String? eyebrow;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final Widget titleText = Text(
+      title,
+      style: const TextStyle(
+        fontFamily: AppFonts.heading,
+        fontSize: 18,
+        letterSpacing: -0.3,
+        fontWeight: FontWeight.w700,
+        color: AppColors.ink,
+      ),
+    );
+
+    final Widget row = Row(
       children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontFamily: AppFonts.heading,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: AppColors.navy,
-            ),
-          ),
-        ),
+        Expanded(child: titleText),
         if (trailingText != null)
           onTrailingTap == null
               ? Text(
                   trailingText!,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.textMuted,
                   ),
                 )
               : TextButton(
                   onPressed: onTrailingTap,
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.only(left: 10, right: 4),
                     minimumSize: const Size(0, 32),
+                    textStyle: const TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  child: Text(trailingText!),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(trailingText!),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_forward_rounded, size: 16),
+                    ],
+                  ),
                 ),
+      ],
+    );
+
+    if (eyebrow == null) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        EyebrowText(text: eyebrow!),
+        const SizedBox(height: 10),
+        row,
       ],
     );
   }
@@ -242,8 +319,8 @@ class PillBadge extends StatelessWidget {
   const PillBadge({
     super.key,
     required this.text,
-    this.background = AppColors.accentSoft,
-    this.foreground = AppColors.accentDark,
+    this.background = AppColors.primarySoft,
+    this.foreground = AppColors.glow,
     this.icon,
   });
 
@@ -252,18 +329,28 @@ class PillBadge extends StatelessWidget {
   final Color foreground;
   final IconData? icon;
 
+  /// Status yang masih menunggu (kuning).
+  const PillBadge.warning({super.key, required this.text, this.icon})
+    : background = AppColors.warningSoft,
+      foreground = AppColors.warning;
+
   const PillBadge.success({super.key, required this.text, this.icon})
-      : background = AppColors.successSoft,
-        foreground = AppColors.success;
+    : background = AppColors.successSoft,
+      foreground = AppColors.success;
+
+  /// Di atas foto: latar gelap transparan, teks putih.
+  const PillBadge.overlay({super.key, required this.text, this.icon})
+    : background = const Color(0xA60A1A2F),
+      foreground = Colors.white;
 
   const PillBadge.glass({super.key, required this.text, this.icon})
-      : background = const Color(0x33FFFFFF),
-        foreground = Colors.white;
+    : background = const Color(0x2EFFFFFF),
+      foreground = Colors.white;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
@@ -344,8 +431,18 @@ class EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
       child: Column(
         children: [
-          Icon(icon, size: 44, color: AppColors.textMuted),
-          const SizedBox(height: 12),
+          PopIn(
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 28, color: AppColors.glow),
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -376,7 +473,7 @@ class SurfaceCard extends StatelessWidget {
   const SurfaceCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(20),
   });
 
   final Widget child;
@@ -397,128 +494,205 @@ class SurfaceCard extends StatelessWidget {
 // Kartu event
 // ---------------------------------------------------------------------------
 
+/// Kartu event bergaya poster: foto penuh dengan teks di atasnya.
+///
+/// Dipakai di daftar event (Beranda, Cari Event) dan karusel event unggulan.
+/// [height] null = tinggi standar daftar; double.infinity = ikuti induk.
 class EventCard extends StatelessWidget {
-  const EventCard({super.key, required this.event, required this.onTap});
+  const EventCard({
+    super.key,
+    required this.event,
+    required this.onTap,
+    this.heroTag,
+    this.height,
+  });
 
   final CampusEvent event;
   final VoidCallback onTap;
 
+  /// Tag animasi Hero untuk foto (lihat [openEventDetail]).
+  final String? heroTag;
+  final double? height;
+
   @override
   Widget build(BuildContext context) {
     final CategoryStyle style = categoryStyle(event.category);
+    final bool mahasiswa = context.select<AuthViewModel, bool>(
+      (AuthViewModel a) => a.isMahasiswa,
+    );
+    final bool saved = context.select<TicketViewModel, bool>(
+      (TicketViewModel t) => t.isSaved(event.id),
+    );
+    final double textFactor = MediaQuery.textScalerOf(context)
+        .scale(1)
+        .clamp(1.0, 1.4)
+        .toDouble();
+    final Widget image = EventImage(
+      path: event.image,
+      color: style.color,
+      icon: style.icon,
+      semanticLabel: 'Foto ${event.title}',
+    );
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 104,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: style.colors,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    right: -10,
-                    bottom: -18,
-                    child: Icon(
-                      style.icon,
-                      size: 110,
-                      color: Colors.white.withAlpha(46),
-                    ),
-                  ),
-                  const Positioned(
-                    left: 14,
-                    top: 14,
-                    child: PillBadge.glass(text: 'Pendaftaran Buka'),
-                  ),
-                  Positioned(
-                    right: 14,
-                    top: 14,
-                    child: PillBadge(text: event.pointsLabel),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.organizer,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    event.title,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: AppFonts.heading,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      height: 1.3,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  InfoLine(
-                    icon: Icons.event_rounded,
-                    text: event.dateTimeShort,
-                  ),
-                  const SizedBox(height: 6),
-                  InfoLine(
-                    icon: Icons.place_rounded,
-                    text: event.location,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
+    return Pressable(
+      child: Material(
+        color: style.color,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height: height ?? 268 * textFactor,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (heroTag == null)
+                  image
+                else
+                  Hero(tag: heroTag!, child: image),
+                const PhotoScrim(strength: 0xE6),
+                Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          event.quotaLabel,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.success,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DateBadge(dateLabel: event.dateLabel, size: 54),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                if (event.internal)
+                                  const PillBadge.overlay(
+                                    text: 'Internal ITPLN',
+                                    icon: Icons.lock_outline_rounded,
+                                  ),
+                                if (mahasiswa)
+                                  PillBadge.overlay(text: event.pointsLabel),
+                                PillBadge.overlay(text: event.quotaLabel),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
+                          SaveButton(
+                            saved: saved,
+                            size: 36,
+                            onPressed: () {
+                              final bool now = context
+                                  .read<TicketViewModel>()
+                                  .toggleSaved(event.id);
+                              showSnack(
+                                context,
+                                now
+                                    ? 'Disimpan ke favorit.'
+                                    : 'Dihapus dari favorit.',
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${event.category} • ${event.organizer}'.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6,
+                          color: Color(0xD9FFFFFF),
                         ),
                       ),
-                      const Text(
-                        'Lihat Detail',
-                        style: TextStyle(
-                          fontSize: 12,
+                      const SizedBox(height: 6),
+                      Text(
+                        event.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppFonts.heading,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.navy,
+                          height: 1.22,
+                          letterSpacing: -0.4,
+                          color: Colors.white,
                         ),
                       ),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 18,
-                        color: AppColors.navy,
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _PosterLine(
+                                  icon: Icons.schedule_rounded,
+                                  text: event.timeRange,
+                                ),
+                                const SizedBox(height: 4),
+                                _PosterLine(
+                                  icon: Icons.place_outlined,
+                                  text: event.location,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton(
+                            onPressed: onTap,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.onLight,
+                              minimumSize: const Size(84, 42),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                              ),
+                            ),
+                            child: const Text('Daftar'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// Satu baris ikon + teks putih di atas foto (maks. 1 baris).
+class _PosterLine extends StatelessWidget {
+  const _PosterLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: Colors.white),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12.5, color: Colors.white),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -567,7 +741,7 @@ class _QrPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double cell = size.width / _modules;
-    final Paint dark = Paint()..color = AppColors.textPrimary;
+    final Paint dark = Paint()..color = AppColors.onLight;
     final Paint light = Paint()..color = Colors.white;
 
     canvas.drawRect(Offset.zero & size, light);

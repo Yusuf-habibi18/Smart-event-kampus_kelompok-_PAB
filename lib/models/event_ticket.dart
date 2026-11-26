@@ -12,6 +12,7 @@ class EventTicket {
     required this.seat,
     required this.refId,
     this.eventId,
+    this.image,
     this.facilities = 'E-Sertifikat & Snack Box Panitia',
     this.verified = false,
     this.phone,
@@ -28,6 +29,7 @@ class EventTicket {
   }) {
     return EventTicket(
       eventId: event.id,
+      image: event.image,
       ticketId: 'SCE-2025-${98000 + event.id * 37}',
       title: event.title,
       organizer: event.organizer,
@@ -45,6 +47,9 @@ class EventTicket {
 
   /// Id [CampusEvent] asal tiket (null untuk tiket contoh).
   final int? eventId;
+
+  /// Foto event (path asset), disalin dari [CampusEvent.image].
+  final String? image;
   final String ticketId;
   final String title;
   final String organizer;

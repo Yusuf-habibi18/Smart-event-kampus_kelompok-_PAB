@@ -15,6 +15,7 @@ const StudentProfile dummyStudent = StudentProfile(
   faculty: 'Fakultas Ilmu Komputer',
   semester: 6,
   generation: 'Gen 2022',
+  email: '2110512044@itpln.ac.id',
 );
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,7 @@ const List<CampusEvent> dummyEvents = [
   CampusEvent(
     id: 1,
     title: 'National Tech Summit 2025',
+    image: 'assets/images/events/tech_summit.jpg',
     organizer: 'BEM KM X Fak. Ilmu Komputer',
     category: 'Akademik & Seminar',
     ormawa: 'Penalaran',
@@ -55,6 +57,7 @@ const List<CampusEvent> dummyEvents = [
     id: 2,
     title: 'Workshop UI/UX Design System: Membangun Portofolio '
         'Standar Industri',
+    image: 'assets/images/events/workshop_uiux.jpg',
     organizer: 'HIMATIF ITB Kampus Ganesha',
     category: 'Workshop',
     ormawa: 'Penalaran',
@@ -69,6 +72,7 @@ const List<CampusEvent> dummyEvents = [
     id: 3,
     title: 'Lomba Debat Konstitusi Nasional & Seminar Kepemudaan '
         'Mahasiswa',
+    image: 'assets/images/events/debat.jpg',
     organizer: 'UKM Debat & Lembaga Hukum',
     category: 'Kompetisi',
     ormawa: 'Penalaran',
@@ -83,6 +87,7 @@ const List<CampusEvent> dummyEvents = [
     id: 4,
     title: 'Art & Music Fest 2025: Gelar Karya Seni Rupa & Showcase '
         'Ormawa Musik',
+    image: 'assets/images/events/music_fest.jpg',
     organizer: 'Dewan Mahasiswa & UKM Seni',
     category: 'Seni & Musik',
     ormawa: 'Seni Budaya',
@@ -96,6 +101,8 @@ const List<CampusEvent> dummyEvents = [
   CampusEvent(
     id: 5,
     title: 'Hackathon Smart Campus 2025',
+    internal: true,
+    image: 'assets/images/events/hackathon.jpg',
     organizer: 'HMIF & Lab Rekayasa Perangkat Lunak',
     category: 'Kompetisi',
     ormawa: 'Penalaran',
@@ -110,6 +117,7 @@ const List<CampusEvent> dummyEvents = [
   CampusEvent(
     id: 6,
     title: 'Job Fair & Career Talk Kampus',
+    image: 'assets/images/events/job_fair.jpg',
     organizer: 'Biro Kemahasiswaan & Alumni (BKA)',
     category: 'Akademik & Seminar',
     ormawa: 'Sosial',
@@ -124,6 +132,8 @@ const List<CampusEvent> dummyEvents = [
   CampusEvent(
     id: 7,
     title: 'Turnamen Futsal Antar Fakultas',
+    internal: true,
+    image: 'assets/images/events/futsal.jpg',
     organizer: 'UKM Olahraga',
     category: 'Kompetisi',
     ormawa: 'Olahraga',
@@ -145,6 +155,7 @@ const List<EventTicket> dummyActiveTickets = [
   EventTicket(
     ticketId: 'SCE-2025-97310',
     title: 'Workshop UI/UX Design System 2025',
+    image: 'assets/images/events/workshop_uiux.jpg',
     organizer: 'Himpunan Mahasiswa Informatika',
     dateLabel: 'Sabtu, 28 Mei 2025',
     timeLabel: 'Sesi Siang 13:00 WIB',
@@ -155,6 +166,7 @@ const List<EventTicket> dummyActiveTickets = [
   EventTicket(
     ticketId: 'SCE-2025-97652',
     title: 'National Tech Summit 2025: AI & Future Ethics',
+    image: 'assets/images/events/tech_summit.jpg',
     organizer: 'BEM Universitas',
     dateLabel: 'Sabtu, 24 Mei 2025',
     timeLabel: 'Sesi Pagi 08:30 WIB',

@@ -33,21 +33,19 @@ class _EksplorasiEventPageState extends State<EksplorasiEventPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const ScreenAppBar(
-        title: 'Eksplorasi Event',
-        subtitle: 'Temukan seminar, lomba, dan workshop kampus',
-        showBack: false,
-      ),
       body: SafeArea(
+        top: false,
         bottom: false,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                  child: TextField(
+                HeroHeader(
+                  eyebrow: 'Jelajah event',
+                  title: 'Cari Event',
+                  subtitle: 'Temukan seminar, lomba, dan workshop kampus.',
+                  bottom: TextField(
                     controller: _search,
                     textInputAction: TextInputAction.search,
                     decoration: appInputDecoration(
@@ -67,13 +65,18 @@ class _EksplorasiEventPageState extends State<EksplorasiEventPage> {
                     onChanged: vm.search,
                   ),
                 ),
+                const SizedBox(height: 16),
                 SizedBox(
                   height: 40,
                   child: ListView.separated(
+                    key: ValueKey<String>(
+                      '${vm.category}|${vm.ormawa}|${vm.query}',
+                    ),
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: vm.categories.length,
-                    separatorBuilder: (BuildContext _, int index) => const SizedBox(width: 8),
+                    separatorBuilder: (BuildContext _, int index) =>
+                        const SizedBox(width: 8),
                     itemBuilder: (BuildContext context, int i) {
                       final String label = vm.categories[i];
                       final bool selected = vm.category == label;
@@ -81,13 +84,14 @@ class _EksplorasiEventPageState extends State<EksplorasiEventPage> {
                         label: Text(label),
                         selected: selected,
                         showCheckmark: false,
-                        selectedColor: AppColors.navy,
-                        backgroundColor: Colors.white,
+                        selectedColor: AppColors.primary,
+                        backgroundColor: AppColors.surface,
                         labelStyle: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
-                          color:
-                              selected ? Colors.white : AppColors.textSecondary,
+                          color: selected
+                              ? Colors.white
+                              : AppColors.textSecondary,
                         ),
                         onSelected: (_) => vm.selectCategory(label),
                       );
@@ -109,13 +113,13 @@ class _EksplorasiEventPageState extends State<EksplorasiEventPage> {
                           label: Text(o == null ? 'Semua Ormawa' : 'Ormawa $o'),
                           selected: vm.ormawa == o,
                           showCheckmark: false,
-                          selectedColor: AppColors.accentSoft,
-                          backgroundColor: Colors.white,
+                          selectedColor: AppColors.primarySoft,
+                          backgroundColor: AppColors.surface,
                           labelStyle: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: vm.ormawa == o
-                                ? AppColors.accentDark
+                                ? AppColors.primary
                                 : AppColors.textSecondary,
                           ),
                           onSelected: (_) => vm.selectOrmawa(o),
@@ -145,22 +149,32 @@ class _EksplorasiEventPageState extends State<EksplorasiEventPage> {
                           child: EmptyState(
                             icon: Icons.search_off_rounded,
                             title: 'Event tidak ditemukan',
-                            message: 'Coba ubah kata kunci atau filter '
+                            message:
+                                'Coba ubah kata kunci atau filter '
                                 'kategori yang dipilih.',
                           ),
                         )
                       : ListView.separated(
                           keyboardDismissBehavior:
                               ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                           itemCount: results.length,
                           separatorBuilder: (BuildContext _, int index) =>
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 20),
                           itemBuilder: (BuildContext context, int i) {
                             final CampusEvent event = results[i];
-                            return EventCard(
-                              event: event,
-                              onTap: () => openEventDetail(context, event),
+                            final String tag = 'cari-${event.id}';
+                            return Reveal(
+                              index: i,
+                              child: EventCard(
+                                event: event,
+                                heroTag: tag,
+                                onTap: () => openEventDetail(
+                                  context,
+                                  event,
+                                  heroTag: tag,
+                                ),
+                              ),
                             );
                           },
                         ),

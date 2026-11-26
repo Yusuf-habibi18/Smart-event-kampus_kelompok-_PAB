@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_routes.dart';
 import '../../core/app_theme.dart';
+import 'ui_kit.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 
 class PengaturanUmumSmartCampusEvent extends StatefulWidget {
@@ -108,8 +109,9 @@ class _PengaturanUmumSmartCampusEventState
                   style: const TextStyle(
                     fontFamily: AppFonts.heading,
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.navy,
+                    letterSpacing: -0.2,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
                   ),
                 ),
               ),
@@ -118,7 +120,7 @@ class _PengaturanUmumSmartCampusEventState
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                   title: Text(option),
                   trailing: option == current
-                      ? const Icon(Icons.check_rounded, color: AppColors.navy)
+                      ? const Icon(Icons.check_rounded, color: AppColors.glow)
                       : null,
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -135,7 +137,7 @@ class _PengaturanUmumSmartCampusEventState
 
   void _gantiPeran() {
     final NavigatorState navigator = Navigator.of(context);
-    const List<UserRole> roles = [UserRole.mahasiswa, UserRole.ormawa];
+    const List<UserRole> roles = [UserRole.peserta, UserRole.ormawa];
 
     showModalBottomSheet<void>(
       context: context,
@@ -153,8 +155,9 @@ class _PengaturanUmumSmartCampusEventState
                   style: TextStyle(
                     fontFamily: AppFonts.heading,
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.navy,
+                    letterSpacing: -0.2,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
                   ),
                 ),
               ),
@@ -162,8 +165,8 @@ class _PengaturanUmumSmartCampusEventState
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.surfaceLow,
-                    child: Icon(role.icon, color: AppColors.navy),
+                    backgroundColor: AppColors.primarySoft,
+                    child: Icon(role.icon, color: AppColors.glow),
                   ),
                   title: Text(
                     role.label,
@@ -189,7 +192,8 @@ class _PengaturanUmumSmartCampusEventState
   Future<void> _clearCache() async {
     final bool ok = await _confirm(
       title: 'Bersihkan cache?',
-      message: 'Poster event dan riwayat pencarian yang tersimpan akan '
+      message:
+          'Poster event dan riwayat pencarian yang tersimpan akan '
           'dihapus. Tiket dan sertifikat Anda tidak terpengaruh.',
       confirmLabel: 'Bersihkan',
     );
@@ -201,17 +205,17 @@ class _PengaturanUmumSmartCampusEventState
   Future<void> _logout() async {
     final bool ok = await _confirm(
       title: 'Keluar dari akun?',
-      message: 'Anda perlu masuk kembali untuk mengakses tiket dan '
+      message:
+          'Anda perlu masuk kembali untuk mengakses tiket dan '
           'sertifikat.',
       confirmLabel: 'Keluar',
       destructive: true,
     );
     if (!ok || !mounted) return;
     context.read<AuthViewModel>().logout();
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.login,
-      (Route<dynamic> route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.login, (Route<dynamic> route) => false);
   }
 
   // --- Data pengaturan -----------------------------------------------------
@@ -232,10 +236,7 @@ class _PengaturanUmumSmartCampusEventState
       tag: tag,
       enabled: enabled,
       onTap: enabled ? () => onChanged(!value) : null,
-      trailing: Switch(
-        value: value,
-        onChanged: enabled ? onChanged : null,
-      ),
+      trailing: Switch(value: value, onChanged: enabled ? onChanged : null),
     );
   }
 
@@ -252,23 +253,23 @@ class _PengaturanUmumSmartCampusEventState
         _Entry(
           icon: Icons.password_rounded,
           title: 'Ganti Kata Sandi & PIN Presensi',
-          subtitle: 'PIN 6-digit untuk otentikasi tiket',
+          subtitle: 'PIN 6 angka untuk membuka tiket',
           trailing: const _Chevron(),
           onTap: () => _comingSoon('Ganti Kata Sandi & PIN Presensi'),
         ),
         _toggle(
           icon: Icons.fingerprint_rounded,
-          title: 'Autentikasi Biometrik',
-          subtitle: 'Face ID & Sidik Jari untuk tiket cepat',
+          title: 'Masuk dengan Sidik Jari / Wajah',
+          subtitle: 'Buka tiket lebih cepat tanpa mengetik PIN',
           value: _biometric,
           onChanged: (bool v) => setState(() => _biometric = v),
         ),
         _Entry(
           icon: Icons.devices_rounded,
-          title: 'Kelola Sesi Perangkat Aktif',
+          title: 'Perangkat yang Sedang Masuk',
           subtitle: '2 perangkat terdaftar login',
           trailing: const _Badge(text: '2 Aktif', tone: _Tone.accent),
-          onTap: () => _comingSoon('Kelola Sesi Perangkat Aktif'),
+          onTap: () => _comingSoon('Perangkat yang Sedang Masuk'),
         ),
       ]),
       _Section('Notifikasi & Pengingat', [
@@ -306,7 +307,7 @@ class _PengaturanUmumSmartCampusEventState
         _toggle(
           icon: Icons.auto_awesome_rounded,
           title: 'Rekomendasi Event Mingguan',
-          subtitle: 'Kompilasi seminar & workshop pilihan',
+          subtitle: 'Rangkuman seminar & workshop pilihan',
           value: _weeklyDigest,
           enabled: _pushAlert,
           onChanged: (bool v) => setState(() => _weeklyDigest = v),
@@ -348,7 +349,7 @@ class _PengaturanUmumSmartCampusEventState
           icon: Icons.qr_code_2_rounded,
           title: 'Sinkronisasi Tiket QR Offline',
           subtitle: 'Simpan enkripsi tiket saat aula minim sinyal',
-          tag: 'Fast-Pass',
+          tag: 'QR',
           value: _offlineTickets,
           onChanged: (bool v) => setState(() => _offlineTickets = v),
         ),
@@ -397,89 +398,120 @@ class _PengaturanUmumSmartCampusEventState
 
     final List<_Section> sections = [];
     for (final _Section section in _buildSections()) {
-      final List<_Entry> matches =
-          section.entries.where((e) => e.matches(_query)).toList();
+      final List<_Entry> matches = section.entries
+          .where((e) => e.matches(_query))
+          .toList();
       if (matches.isNotEmpty) sections.add(_Section(section.title, matches));
     }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
             child: Column(
               children: [
-                _Header(canPop: Navigator.of(context).canPop()),
                 Expanded(
-                  child: ListView(
+                  child: CustomScrollView(
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-                    children: [
-                      TextField(
-                        controller: _searchController,
-                        textInputAction: TextInputAction.search,
-                        decoration: appInputDecoration(
-                          hint: 'Cari pengaturan, keamanan, SKPI...',
-                          prefixIcon: Icons.search_rounded,
-                          suffixIcon: searching
-                              ? IconButton(
-                                  tooltip: 'Hapus pencarian',
-                                  icon: const Icon(Icons.close_rounded),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _query = '');
-                                  },
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: HeroHeader(
+                          leading: Navigator.of(context).canPop()
+                              ? Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: CircleIconButton(
+                                    icon: Icons.arrow_back_rounded,
+                                    tooltip: MaterialLocalizations.of(context)
+                                        .backButtonTooltip,
+                                    onPressed: () =>
+                                        Navigator.of(context).maybePop(),
+                                  ),
                                 )
                               : null,
+                          eyebrow: 'Akun & aplikasi',
+                          title: 'Pengaturan',
+                          subtitle:
+                              'Atur keamanan, notifikasi, dan peran akun.',
                         ),
-                        onChanged: (String v) =>
-                            setState(() => _query = v.trim().toLowerCase()),
                       ),
-                      const SizedBox(height: 20),
-                      if (!searching) ...[
-                        _ProfileCard(onChangeRole: _gantiPeran),
-                        const SizedBox(height: 24),
-                      ],
-                      if (sections.isEmpty)
-                        const _EmptyResult()
-                      else
-                        for (final _Section section in sections) ...[
-                          _SectionBlock(section: section),
-                          const SizedBox(height: 24),
-                        ],
-                      if (!searching) ...[
-                        OutlinedButton.icon(
-                          onPressed: _logout,
-                          icon: const Icon(Icons.logout_rounded, size: 20),
-                          label: const Text('Keluar dari Akun Kampus'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                            foregroundColor: AppColors.danger,
-                            side: const BorderSide(color: AppColors.danger),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(20, 4, 20, 32),
+                        sliver: SliverList.list(
+                          children: [
+                            TextField(
+                              controller: _searchController,
+                              textInputAction: TextInputAction.search,
+                              decoration: appInputDecoration(
+                                hint: 'Cari pengaturan, keamanan, SKPI...',
+                                prefixIcon: Icons.search_rounded,
+                                suffixIcon: searching
+                                    ? IconButton(
+                                        tooltip: 'Hapus pencarian',
+                                        icon: const Icon(Icons.close_rounded),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          setState(() => _query = '');
+                                        },
+                                      )
+                                    : null,
+                              ),
+                              onChanged: (String v) => setState(
+                                () => _query = v.trim().toLowerCase(),
+                              ),
                             ),
-                            textStyle: const TextStyle(
-                              fontFamily: AppFonts.body,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                            const SizedBox(height: 24),
+                            if (!searching) ...[
+                              _ProfileCard(onChangeRole: _gantiPeran),
+                              const SizedBox(height: 40),
+                            ],
+                            if (sections.isEmpty)
+                              const _EmptyResult()
+                            else
+                              for (final _Section section in sections) ...[
+                                _SectionBlock(section: section),
+                                const SizedBox(height: 40),
+                              ],
+                            if (!searching) ...[
+                              OutlinedButton.icon(
+                                onPressed: _logout,
+                                icon: const Icon(
+                                  Icons.logout_rounded,
+                                  size: 20,
+                                ),
+                                label: const Text('Keluar dari Akun Kampus'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(52),
+                                  foregroundColor: AppColors.danger,
+                                  side: const BorderSide(
+                                    color: AppColors.danger,
+                                  ),
+                                  shape: buttonShape,
+                                  textStyle: const TextStyle(
+                                    fontFamily: AppFonts.body,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 40),
+                              const Text(
+                                'Smart Campus Event v3.2.0 • Build 2024.11\n'
+                                'Server Terpadu Biro Kemahasiswaan & Alumni (BKA)',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.6,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Smart Campus Event v3.2.0 • Build 2024.11\n'
-                          'Server Terpadu Biro Kemahasiswaan & Alumni (BKA)',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            height: 1.6,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
@@ -533,42 +565,6 @@ class _Entry {
 // Widget pendukung
 // ---------------------------------------------------------------------------
 
-class _Header extends StatelessWidget {
-  const _Header({required this.canPop});
-
-  final bool canPop;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(canPop ? 8 : 20, 12, 20, 12),
-      child: Row(
-        children: [
-          if (canPop)
-            IconButton(
-              tooltip: 'Kembali',
-              icon: const Icon(Icons.arrow_back_rounded),
-              color: AppColors.navy,
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-          const Expanded(
-            child: Text(
-              'Pengaturan Aplikasi',
-              style: TextStyle(
-                fontFamily: AppFonts.heading,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-                color: AppColors.navy,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({required this.onChangeRole});
 
@@ -577,15 +573,8 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.navyLight, AppColors.navy],
-        ),
-      ),
+      padding: const EdgeInsets.all(20),
+      decoration: AppDecorations.brandPanel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -597,7 +586,7 @@ class _ProfileCard extends StatelessWidget {
                 height: 56,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
-                  color: AppColors.accent,
+                  color: Colors.white,
                   shape: BoxShape.circle,
                 ),
                 child: const Text(
@@ -605,8 +594,9 @@ class _ProfileCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.heading,
                     fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.accentDark,
+                    letterSpacing: -0.2,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -625,7 +615,8 @@ class _ProfileCard extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: AppFonts.heading,
                             fontSize: 18,
-                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
@@ -638,7 +629,7 @@ class _ProfileCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         height: 1.4,
-                        color: AppColors.periwinkle,
+                        color: Color(0xD9FFFFFF),
                       ),
                     ),
                     SizedBox(height: 2),
@@ -647,7 +638,7 @@ class _ProfileCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         height: 1.4,
-                        color: AppColors.periwinkle,
+                        color: Color(0xD9FFFFFF),
                       ),
                     ),
                   ],
@@ -655,7 +646,7 @@ class _ProfileCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           OutlinedButton.icon(
             onPressed: onChangeRole,
             icon: const Icon(Icons.swap_horiz_rounded, size: 20),
@@ -664,9 +655,7 @@ class _ProfileCard extends StatelessWidget {
               minimumSize: const Size.fromHeight(46),
               foregroundColor: Colors.white,
               side: BorderSide(color: Colors.white.withAlpha(90)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              shape: buttonShape,
               textStyle: const TextStyle(
                 fontFamily: AppFonts.body,
                 fontSize: 14,
@@ -697,16 +686,17 @@ class _SectionBlock extends StatelessWidget {
             style: const TextStyle(
               fontFamily: AppFonts.heading,
               fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppColors.navy,
+              letterSpacing: -0.1,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.surfaceHigh),
+            border: Border.all(color: AppColors.border),
           ),
           child: Material(
             color: Colors.transparent,
@@ -715,12 +705,7 @@ class _SectionBlock extends StatelessWidget {
             child: Column(
               children: [
                 for (int i = 0; i < section.entries.length; i++) ...[
-                  if (i > 0)
-                    const Divider(
-                      height: 1,
-                      indent: 72,
-                      color: AppColors.surfaceHigh,
-                    ),
+                  if (i > 0) const Divider(height: 1, indent: 72),
                   _SettingTile(entry: section.entries[i]),
                 ],
               ],
@@ -751,10 +736,10 @@ class _SettingTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceLow,
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(entry.icon, size: 20, color: AppColors.navy),
+                child: Icon(entry.icon, size: 20, color: AppColors.glow),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -818,7 +803,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: success ? AppColors.successSoft : AppColors.accentSoft,
+        color: success ? AppColors.successSoft : AppColors.warningSoft,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -826,7 +811,7 @@ class _Badge extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          color: success ? AppColors.success : AppColors.accentDark,
+          color: success ? AppColors.success : AppColors.warning,
         ),
       ),
     );
@@ -838,10 +823,7 @@ class _Chevron extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Icon(
-      Icons.chevron_right_rounded,
-      color: AppColors.textMuted,
-    );
+    return const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted);
   }
 }
 
@@ -866,7 +848,7 @@ class _ValueTrailing extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.navy,
+                color: AppColors.glow,
               ),
             ),
           ),

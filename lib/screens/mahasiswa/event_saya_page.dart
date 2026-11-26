@@ -22,29 +22,28 @@ class EventSayaPage extends StatelessWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          titleSpacing: 20,
-          title: const Row(
-            children: [
-              AppLogo(size: 32),
-              SizedBox(width: 10),
-              Flexible(child: Text('Event Saya', overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: 'Mendatang (${vm.totalActive})'),
-              Tab(text: 'Selesai (${vm.totalCompleted})'),
-              Tab(text: 'Dibatalkan (${vm.totalCancelled})'),
-            ],
-          ),
-        ),
-        body: const TabBarView(
+        body: Column(
           children: [
-            _UpcomingTab(),
-            _HistoryTab(),
-            _CancelledTab(),
+            const HeroHeader(
+              eyebrow: 'Tiket kamu',
+              title: 'Event Saya',
+              subtitle: 'Tiket, QR presensi, dan riwayat kegiatan kamu.',
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Gap.page, 12, Gap.page, 0),
+              child: SegmentTabBar(
+                labels: [
+                  'Mendatang (${vm.totalActive})',
+                  'Selesai (${vm.totalCompleted})',
+                  'Dibatalkan (${vm.totalCancelled})',
+                ],
+              ),
+            ),
+            const Expanded(
+              child: TabBarView(
+                children: [_UpcomingTab(), _HistoryTab(), _CancelledTab()],
+              ),
+            ),
           ],
         ),
       ),
@@ -64,7 +63,7 @@ class _TabList extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
           children: children,
         ),
       ),
@@ -100,17 +99,8 @@ class _UpcomingTab extends StatelessWidget {
 
     return _TabList(
       children: [
-        const Text(
-          'Kelola tiket registrasi, akses QR presensi gerbang, dan klaim '
-          'sertifikat ber-SKPI.',
-          style: TextStyle(
-            fontSize: 14,
-            height: 1.5,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 20),
         SectionHeader(
+          eyebrow: 'Mendatang',
           title: 'Tiket Acara Terdekat',
           trailingText: '${vm.totalActive} Tiket Aktif',
         ),
@@ -119,18 +109,22 @@ class _UpcomingTab extends StatelessWidget {
           const EmptyState(
             icon: Icons.confirmation_number_outlined,
             title: 'Belum ada tiket aktif',
-            message: 'Daftar event dari Beranda atau Eksplorasi, tiketnya '
+            message:
+                'Daftar event dari Beranda atau Cari Event, tiketnya '
                 'akan muncul di sini.',
           ),
-        for (final EventTicket ticket in tickets) ...[
-          _UpcomingCard(
-            ticket: ticket,
-            onCancel: () => _cancel(context, ticket),
+        for (final (int i, EventTicket ticket) in tickets.indexed) ...[
+          Reveal(
+            index: i,
+            child: _UpcomingCard(
+              ticket: ticket,
+              onCancel: () => _cancel(context, ticket),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surfaceLow,
             borderRadius: BorderRadius.circular(16),
@@ -138,7 +132,11 @@ class _UpcomingTab extends StatelessWidget {
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.wifi_off_rounded, size: 18, color: AppColors.textMuted),
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 18,
+                color: AppColors.textMuted,
+              ),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -201,7 +199,7 @@ class _HistoryTab extends StatelessWidget {
             review: vm.reviewFor(event),
             onReview: () => _review(context, event),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
       ],
     );
@@ -217,8 +215,9 @@ class _CancelledTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<EventTicket> tickets =
-        context.watch<TicketViewModel>().cancelledTickets;
+    final List<EventTicket> tickets = context
+        .watch<TicketViewModel>()
+        .cancelledTickets;
 
     return _TabList(
       children: [
@@ -236,7 +235,7 @@ class _CancelledTab extends StatelessWidget {
                 vertical: 6,
               ),
               leading: const CircleAvatar(
-                backgroundColor: AppColors.surfaceLow,
+                backgroundColor: AppColors.primarySoft,
                 child: Icon(Icons.event_busy_rounded, color: AppColors.danger),
               ),
               title: Text(
@@ -273,124 +272,163 @@ class _UpcomingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool ready = !ticket.verified;
 
-    return SurfaceCard(
+    return Card(
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Flexible(
-                child: ticket.verified
-                    ? const PillBadge.success(
-                        text: 'Terverifikasi',
-                        icon: Icons.verified_rounded,
-                      )
-                    : const PillBadge(
-                        text: 'Terdaftar (Tiket Siap)',
-                        icon: Icons.confirmation_number_rounded,
-                      ),
-              ),
-              const Spacer(),
-              Text(
-                'Kursi: ${ticket.seat}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
+          // Kepala kartu: foto event penuh dengan judul di atasnya.
+          SizedBox(
+            height: 190,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                EventImage(
+                  path: ticket.image,
+                  color: AppColors.primary,
+                  icon: Icons.confirmation_number_rounded,
+                  semanticLabel: 'Foto ${ticket.title}',
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            ticket.organizer,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            ticket.title,
-            style: const TextStyle(
-              fontFamily: AppFonts.heading,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              height: 1.3,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _LabelValue(label: 'Jadwal', value: ticket.dateLabel),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _LabelValue(label: 'Lokasi', value: ticket.location),
-              ),
-            ],
-          ),
-          if (ready) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.periwinkle.withAlpha(150),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.qr_code_2_rounded, color: AppColors.navy),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Fast-Pass QR Siap Digunakan',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.navy,
+                const PhotoScrim(strength: 0xE6),
+                Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: ticket.verified
+                                ? const PillBadge.overlay(
+                                    text: 'Terverifikasi',
+                                    icon: Icons.verified_rounded,
+                                  )
+                                : const PillBadge.overlay(
+                                    text: 'Tiket Siap',
+                                    icon: Icons.confirmation_number_rounded,
+                                  ),
                           ),
+                          const Spacer(),
+                          PillBadge.overlay(text: 'Kursi: ${ticket.seat}'),
+                        ],
+                      ),
+                      const Spacer(),
+                      Text(
+                        ticket.organizer.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6,
+                          color: Color(0xD9FFFFFF),
                         ),
-                        Text(
-                          'Tunjukkan ke panitia di pintu gerbang',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        ticket.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppFonts.heading,
+                          fontSize: 19,
+                          letterSpacing: -0.3,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _LabelValue(
+                        label: 'Jadwal',
+                        value: ticket.dateLabel,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _LabelValue(
+                        label: 'Lokasi',
+                        value: ticket.location,
+                      ),
+                    ),
+                  ],
+                ),
+                if (ready) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTint.withAlpha(150),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.qr_code_2_rounded, color: AppColors.glow),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'QR Tiket Siap Digunakan',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.glow,
+                                ),
+                              ),
+                              Text(
+                                'Tunjukkan ke panitia di pintu gerbang',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
                 ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 14),
-          ready
-              ? FilledButton(
-                  onPressed: () => openTicket(context, ticket),
-                  style: _buttonStyle(filled: true),
-                  child: const Text('Buka QR Tiket Presensi'),
-                )
-              : OutlinedButton(
-                  onPressed: () => openTicket(context, ticket),
-                  style: _buttonStyle(filled: false),
-                  child: const Text('Lihat E-Tiket'),
+                const SizedBox(height: 16),
+                ready
+                    ? FilledButton(
+                        onPressed: () => openTicket(context, ticket),
+                        style: _buttonStyle(filled: true),
+                        child: const Text('Buka QR Tiket Presensi'),
+                      )
+                    : OutlinedButton(
+                        onPressed: () => openTicket(context, ticket),
+                        style: _buttonStyle(filled: false),
+                        child: const Text('Lihat E-Tiket'),
+                      ),
+                const SizedBox(height: 4),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('Batalkan Pendaftaran'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                    ),
+                  ),
                 ),
-          const SizedBox(height: 4),
-          Center(
-            child: TextButton.icon(
-              onPressed: onCancel,
-              icon: const Icon(Icons.close_rounded, size: 18),
-              label: const Text('Batalkan Pendaftaran'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              ],
             ),
           ),
         ],
@@ -435,7 +473,8 @@ class _HistoryCard extends StatelessWidget {
             style: const TextStyle(
               fontFamily: AppFonts.heading,
               fontSize: 16,
-              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+              fontWeight: FontWeight.w700,
               height: 1.3,
               color: AppColors.textPrimary,
             ),
@@ -494,14 +533,14 @@ class _HistoryCard extends StatelessWidget {
             const SizedBox(height: 12),
             _ReviewSummary(review: review),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 flex: 5,
                 child: FilledButton(
-                  onPressed: () => Navigator.of(context)
-                      .pushNamed(AppRoutes.sertifikat),
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.sertifikat),
                   style: _buttonStyle(filled: true),
                   child: const Text('Unduh E-Sertifikat'),
                 ),
@@ -535,7 +574,7 @@ class _ReviewSummary extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.accentSoft.withAlpha(110),
+        color: AppColors.primarySoft.withAlpha(110),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -547,8 +586,8 @@ class _ReviewSummary extends StatelessWidget {
                 'Ulasan Anda',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.accentDark,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.glow,
                 ),
               ),
               const SizedBox(width: 8),
@@ -558,7 +597,7 @@ class _ReviewSummary extends StatelessWidget {
                       ? Icons.star_rounded
                       : Icons.star_outline_rounded,
                   size: 16,
-                  color: AppColors.accent,
+                  color: AppColors.glow,
                 ),
             ],
           ),
@@ -584,7 +623,11 @@ ButtonStyle _buttonStyle({required bool filled}) {
   final RoundedRectangleBorder shape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(14),
   );
-  const TextStyle text = TextStyle(fontFamily: AppFonts.body, fontSize: 13, fontWeight: FontWeight.w800);
+  const TextStyle text = TextStyle(
+    fontFamily: AppFonts.body,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+  );
 
   return filled
       ? FilledButton.styleFrom(
@@ -596,8 +639,8 @@ ButtonStyle _buttonStyle({required bool filled}) {
       : OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(46),
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          foregroundColor: AppColors.navy,
-          side: const BorderSide(color: AppColors.outline),
+          foregroundColor: AppColors.glow,
+          side: const BorderSide(color: AppColors.border),
           shape: shape,
           textStyle: text,
         );
@@ -646,8 +689,9 @@ class _ReviewSheet extends StatefulWidget {
 }
 
 class _ReviewSheetState extends State<_ReviewSheet> {
-  late final TextEditingController _comment =
-      TextEditingController(text: widget.initial?.comment ?? '');
+  late final TextEditingController _comment = TextEditingController(
+    text: widget.initial?.comment ?? '',
+  );
   late int _rating = widget.initial?.rating ?? 0;
 
   @override
@@ -657,9 +701,8 @@ class _ReviewSheetState extends State<_ReviewSheet> {
   }
 
   void _send() {
-    Navigator.of(context).pop(
-      EventReview(rating: _rating, comment: _comment.text),
-    );
+    Navigator.of(context)
+        .pop(EventReview(rating: _rating, comment: _comment.text));
   }
 
   @override
@@ -676,8 +719,9 @@ class _ReviewSheetState extends State<_ReviewSheet> {
               style: TextStyle(
                 fontFamily: AppFonts.heading,
                 fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.navy,
+                letterSpacing: -0.2,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
               ),
             ),
             const SizedBox(height: 4),
@@ -702,7 +746,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                       i < _rating
                           ? Icons.star_rounded
                           : Icons.star_outline_rounded,
-                      color: AppColors.accent,
+                      color: AppColors.glow,
                     ),
                     onPressed: () => setState(() => _rating = i + 1),
                   ),
@@ -717,14 +761,12 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                 hint: 'Ceritakan pengalaman Anda (opsional)',
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             FilledButton(
               onPressed: _rating == 0 ? null : _send,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                shape: buttonShape,
               ),
               child: const Text('Kirim Ulasan'),
             ),

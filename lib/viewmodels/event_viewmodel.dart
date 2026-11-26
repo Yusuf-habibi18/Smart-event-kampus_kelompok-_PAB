@@ -9,9 +9,25 @@ import '../models/campus_event.dart';
 /// halaman memiliki instance sendiri sehingga filternya tidak saling
 /// memengaruhi.
 class EventViewModel extends ChangeNotifier {
-  EventViewModel([this._events = dummyEvents]);
+  EventViewModel([List<CampusEvent> events = dummyEvents, this._showInternal = true])
+      : _events = events;
 
   final List<CampusEvent> _events;
+
+  /// false untuk peserta umum: event Internal ITPLN disembunyikan.
+  bool _showInternal;
+  bool get showInternal => _showInternal;
+
+  void setShowInternal(bool value) {
+    if (value == _showInternal) return;
+    _showInternal = value;
+    _featuredIndex = 0;
+    notifyListeners();
+  }
+
+  /// Event yang boleh dilihat oleh jenis akun saat ini.
+  Iterable<CampusEvent> get _visible =>
+      _events.where((CampusEvent e) => _showInternal || !e.internal);
 
   String _query = '';
   String _category = eventCategories.first;
@@ -32,7 +48,7 @@ class EventViewModel extends ChangeNotifier {
 
   /// Event yang lolos pencarian, kategori, dan ormawa.
   List<CampusEvent> get filteredEvents {
-    return _events.where((CampusEvent e) {
+    return _visible.where((CampusEvent e) {
       final bool okCategory =
           _category == eventCategories.first || e.category == _category;
       final bool okOrmawa = _ormawa == null || e.ormawa == _ormawa;
@@ -49,7 +65,7 @@ class EventViewModel extends ChangeNotifier {
   int get totalResults => filteredEvents.length;
 
   int countByOrmawa(String ormawa) =>
-      _events.where((CampusEvent e) => e.ormawa == ormawa).length;
+      _visible.where((CampusEvent e) => e.ormawa == ormawa).length;
 
   // --- Aksi dari View ------------------------------------------------------
 

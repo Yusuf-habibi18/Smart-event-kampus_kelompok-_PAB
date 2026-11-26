@@ -60,11 +60,17 @@ class _SplashScreenSmartCampusEventUmumState
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        // Foto kampus samar di atas gradasi biru.
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.navyLight, AppColors.navy, AppColors.navyDark],
+            colors: [AppColors.primaryHover, AppColors.primary, AppColors.ink],
+          ),
+          image: DecorationImage(
+            image: AssetImage(AppImages.campus),
+            fit: BoxFit.cover,
+            opacity: 0.18,
           ),
         ),
         child: Stack(
@@ -74,17 +80,17 @@ class _SplashScreenSmartCampusEventUmumState
             const Positioned(
               top: -96,
               right: -90,
-              child: _Blob(size: 320, color: Color(0x4C4059AA)),
+              child: _Blob(size: 320, color: Color(0x4C3550B5)),
             ),
             const Positioned(
               top: 260,
               left: -128,
-              child: _Blob(size: 288, color: Color(0x33FEA619)),
+              child: _Blob(size: 288, color: Color(0x338FB0FF)),
             ),
             const Positioned(
               bottom: -120,
               right: -60,
-              child: _Blob(size: 256, color: Color(0x6600389A)),
+              child: _Blob(size: 256, color: Color(0x661D5FD0)),
             ),
             SafeArea(
               child: LayoutBuilder(
@@ -151,11 +157,11 @@ class _TopBar extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x66FEA619),
+                      color: Color(0x668FB0FF),
                       blurRadius: 6,
                       spreadRadius: 2,
                     ),
@@ -186,13 +192,13 @@ class _TopBar extends StatelessWidget {
               Icon(
                 Icons.account_balance_rounded,
                 size: 12,
-                color: AppColors.periwinkle,
+                color: AppColors.primaryTint,
               ),
               SizedBox(width: 6),
               Text(
                 'Universitas Terpadu',
                 style: TextStyle(
-                  color: AppColors.periwinkle,
+                  color: Color(0xD9FFFFFF),
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
@@ -233,26 +239,14 @@ class _Hero extends StatelessWidget {
   const _Hero();
 
   static const List<_Feature> _features = [
-    _Feature(
-      Icons.qr_code_scanner_rounded,
-      'Fast-Pass QR',
-      'Check-in Aula & Lab',
-    ),
+    _Feature(Icons.qr_code_scanner_rounded, 'Tiket QR', 'Check-in Aula & Lab'),
     _Feature(
       Icons.workspace_premium_rounded,
       'E-Sertifikat',
       'Terakreditasi SKPI',
     ),
-    _Feature(
-      Icons.verified_user_rounded,
-      'Validasi BKA',
-      'Izin Legal Ormawa',
-    ),
-    _Feature(
-      Icons.sync_rounded,
-      'SIAKAD Sync',
-      'Otomatisasi Poin',
-    ),
+    _Feature(Icons.verified_user_rounded, 'Validasi BKA', 'Izin Legal Ormawa'),
+    _Feature(Icons.sync_rounded, 'Terhubung SIAKAD', 'Otomatisasi Poin'),
   ];
 
   @override
@@ -268,7 +262,7 @@ class _Hero extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.white, AppColors.periwinkle],
+              colors: [Colors.white, AppColors.primaryTint],
             ),
             boxShadow: const [
               BoxShadow(
@@ -293,8 +287,8 @@ class _Hero extends StatelessWidget {
                 color: Colors.white,
                 fontFamily: AppFonts.heading,
                 fontSize: 34,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.8,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
                 height: 1.2,
               ),
             ),
@@ -304,7 +298,7 @@ class _Hero extends StatelessWidget {
               height: 8,
               margin: const EdgeInsets.only(bottom: 10),
               decoration: const BoxDecoration(
-                color: AppColors.accent,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -315,7 +309,7 @@ class _Hero extends StatelessWidget {
           'SMART CAMPUS EVENT MANAGEMENT',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: AppColors.periwinkle,
+            color: Color(0xD9FFFFFF),
             fontSize: 12,
             fontWeight: FontWeight.w600,
             letterSpacing: 1.6,
@@ -326,13 +320,9 @@ class _Hero extends StatelessWidget {
           'Portal Terpadu Eksplorasi, Partisipasi & '
           'Sertifikasi Kegiatan Mahasiswa',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _white(230),
-            fontSize: 15,
-            height: 1.5,
-          ),
+          style: TextStyle(color: _white(230), fontSize: 15, height: 1.5),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 40),
         for (int i = 0; i < _features.length; i += 2)
           Padding(
             padding: EdgeInsets.only(top: i == 0 ? 0 : 12),
@@ -382,10 +372,10 @@ class _FeatureTile extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0x33FEA619),
+              color: const Color(0x338FB0FF),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(feature.icon, size: 20, color: AppColors.accent),
+            child: Icon(feature.icon, size: 20, color: AppColors.glow),
           ),
           const SizedBox(height: 10),
           Text(
@@ -402,7 +392,7 @@ class _FeatureTile extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: AppColors.periwinkle,
+              color: Color(0xD9FFFFFF),
               fontSize: 11,
               height: 1.4,
             ),
@@ -451,9 +441,9 @@ class _LoadingFooter extends StatelessWidget {
                         done
                             ? 'Sinkronisasi selesai. Siap dijelajahi.'
                             : 'Memuat profil SSO & sinkronisasi agenda '
-                                'kampus...',
+                                  'kampus...',
                         style: const TextStyle(
-                          color: AppColors.periwinkle,
+                          color: Color(0xD9FFFFFF),
                           fontSize: 11,
                           height: 1.4,
                         ),
@@ -463,7 +453,7 @@ class _LoadingFooter extends StatelessWidget {
                     Text(
                       '$percent%',
                       style: const TextStyle(
-                        color: AppColors.accent,
+                        color: AppColors.glow,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -477,26 +467,26 @@ class _LoadingFooter extends StatelessWidget {
                     value: progress.value,
                     minHeight: 6,
                     backgroundColor: _white(38),
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppColors.accent),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: done ? onStart : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: AppColors.accentDark,
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
                     disabledBackgroundColor: _white(30),
                     disabledForegroundColor: _white(120),
-                    minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    minimumSize: const Size.fromHeight(52),
+                    shape: buttonShape,
                     textStyle: const TextStyle(
                       fontFamily: AppFonts.heading,
                       fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   child: const Text('Mulai Eksplorasi'),
@@ -519,13 +509,9 @@ class _LoadingFooter extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'Biro Kemahasiswaan & Alumni (BKA) Universitas • '
-          'Dilindungi Enkripsi SSL 256-bit',
+          'Data Aman & Terlindungi',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _white(110),
-            fontSize: 10,
-            height: 1.5,
-          ),
+          style: TextStyle(color: _white(110), fontSize: 10, height: 1.5),
         ),
       ],
     );

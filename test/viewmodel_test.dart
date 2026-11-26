@@ -77,6 +77,18 @@ void main() {
       expect(vm.cancelledTickets, contains(ticket));
     });
 
+    test('toggleSaved menyimpan & membatalkan event favorit', () {
+      final TicketViewModel vm = TicketViewModel();
+      expect(vm.isSaved(1), isFalse);
+
+      expect(vm.toggleSaved(1), isTrue);
+      expect(vm.isSaved(1), isTrue);
+      expect(vm.totalSaved, 1);
+
+      expect(vm.toggleSaved(1), isFalse);
+      expect(vm.isSaved(1), isFalse);
+    });
+
     test('submitReview menyimpan rating dan komentar', () {
       final TicketViewModel vm = TicketViewModel();
       final event = vm.completedEvents.first;
@@ -89,22 +101,83 @@ void main() {
   });
 
   group('AuthViewModel', () {
-    test('login menyimpan NIM yang diketik ke profil mahasiswa', () async {
+    test('email kampus → mahasiswa ITPLN, NIM diambil dari email', () async {
       final AuthViewModel vm = AuthViewModel();
 
-      await vm.login(id: '2211223344', password: 'rahasia');
+      await vm.login(id: '2211223344@itpln.ac.id', password: 'rahasia');
 
       expect(vm.isLoggedIn, isTrue);
+      expect(vm.isMahasiswa, isTrue);
       expect(vm.student.nim, '2211223344');
+      expect(vm.student.identityLine, startsWith('NIM 2211223344'));
     });
 
-    test('validasi ID mengikuti peran yang dipilih', () {
+    test('email lain → peserta umum tanpa NIM', () async {
+      final AuthViewModel vm = AuthViewModel();
+      vm.choosePeserta(PesertaType.umum);
+
+      await vm.login(id: 'budi@gmail.com', password: 'rahasia');
+
+      expect(vm.isMahasiswa, isFalse);
+      expect(vm.student.type, PesertaType.umum);
+      expect(vm.student.identityLine, 'Peserta Umum');
+    });
+
+    test('daftar akun umum menyimpan nama & instansi untuk login', () async {
+      final AuthViewModel vm = AuthViewModel();
+
+      await vm.register(
+        name: 'Budi Santoso',
+        email: 'budi@gmail.com',
+        password: 'rahasia',
+        institution: 'Universitas Indonesia',
+      );
+      expect(vm.pesertaChoice, PesertaType.umum);
+
+      await vm.login(id: 'budi@gmail.com', password: 'rahasia');
+      expect(vm.student.name, 'Budi Santoso');
+      expect(vm.student.identityLine, 'Peserta Umum • Universitas Indonesia');
+    });
+
+    test('validasi ID mengikuti peran & jenis peserta', () {
       final AuthViewModel vm = AuthViewModel();
       expect(vm.validateId('abc'), isNotNull);
-      expect(vm.validateId('2211223344'), isNull);
+      expect(vm.validateId('2211223344@itpln.ac.id'), isNull);
+      // Pilihan "mahasiswa ITPLN" wajib memakai email kampus.
+      expect(vm.validateId('budi@gmail.com'), isNotNull);
+
+      vm.choosePeserta(PesertaType.umum);
+      expect(vm.validateId('budi@gmail.com'), isNull);
 
       vm.selectRole(UserRole.ormawa);
       expect(vm.validateId('hima@kampus.ac.id'), isNull);
+
+      vm.selectRole(UserRole.admin);
+      expect(vm.validateId('abc'), isNotNull);
+      expect(vm.validateId('198503122010011002'), isNull);
+    });
+  });
+
+  group('Visibilitas event', () {
+    test('peserta umum tidak melihat event Internal ITPLN', () {
+      final EventViewModel vm = EventViewModel();
+      final int internal =
+          dummyEvents.where((CampusEvent e) => e.internal).length;
+      expect(internal, greaterThan(0));
+
+      vm.setShowInternal(false);
+      expect(vm.totalResults, dummyEvents.length - internal);
+      expect(vm.filteredEvents.any((CampusEvent e) => e.internal), isFalse);
+
+      vm.setShowInternal(true);
+      expect(vm.totalResults, dummyEvents.length);
+    });
+
+    test('jenis akun ditentukan dari domain email', () {
+      expect(PesertaType.fromEmail('a@itpln.ac.id'), PesertaType.mahasiswaItpln);
+      expect(PesertaType.fromEmail('A@ITPLN.AC.ID'), PesertaType.mahasiswaItpln);
+      expect(PesertaType.fromEmail('a@gmail.com'), PesertaType.umum);
+      expect(PesertaType.fromEmail('a@itpln.ac.id.palsu.com'), PesertaType.umum);
     });
   });
 }

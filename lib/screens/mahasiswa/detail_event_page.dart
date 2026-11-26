@@ -23,9 +23,12 @@ const List<String> _jalurLabels = ['Luring', 'Daring (Zoom)'];
 /// Menerima [event] dari halaman asal lewat constructor (Navigator.push).
 /// Proses pendaftaran dijalankan oleh [TicketViewModel.registerEvent].
 class DetailEventPage extends StatefulWidget {
-  const DetailEventPage({super.key, required this.event});
+  const DetailEventPage({super.key, required this.event, this.heroTag});
 
   final CampusEvent event;
+
+  /// Tag Hero dari kartu asal agar foto "terbang" ke halaman ini.
+  final String? heroTag;
 
   @override
   State<DetailEventPage> createState() => _DetailEventPageState();
@@ -63,8 +66,9 @@ class _DetailEventPageState extends State<DetailEventPage> {
   void _goStep(int step) {
     if (_loading) return;
     // Sudah terdaftar: tombol "Daftar" berubah menjadi "Lihat Tiket Saya".
-    final EventTicket? mine =
-        context.read<TicketViewModel>().ticketFor(widget.event);
+    final EventTicket? mine = context.read<TicketViewModel>().ticketFor(
+      widget.event,
+    );
     if (step == 1 && mine != null) {
       openTicket(context, mine);
       return;
@@ -90,8 +94,9 @@ class _DetailEventPageState extends State<DetailEventPage> {
                   style: TextStyle(
                     fontFamily: AppFonts.heading,
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.navy,
+                    letterSpacing: -0.2,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
                   ),
                 ),
               ),
@@ -100,7 +105,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                   title: Text(track),
                   trailing: track == _track
-                      ? const Icon(Icons.check_rounded, color: AppColors.navy)
+                      ? const Icon(Icons.check_rounded, color: AppColors.glow)
                       : null,
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -143,13 +148,14 @@ class _DetailEventPageState extends State<DetailEventPage> {
     final NavigatorState navigator = Navigator.of(context);
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
 
-    final EventTicket ticket =
-        await context.read<TicketViewModel>().registerEvent(
-              widget.event,
-              phone: _phoneController.text,
-              participation: _jalurLabels[_jalur!],
-              track: _track!,
-            );
+    final EventTicket ticket = await context
+        .read<TicketViewModel>()
+        .registerEvent(
+          widget.event,
+          phone: _phoneController.text,
+          participation: _jalurLabels[_jalur!],
+          track: _track!,
+        );
     if (!mounted) return;
 
     navigator.pushReplacement(
@@ -197,9 +203,21 @@ class _DetailEventPageState extends State<DetailEventPage> {
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                      children: _step == 0
-                          ? _detailChildren(event, registered: myTicket != null)
-                          : _formChildren(event),
+                      children: [
+                        for (final (int i, Widget w)
+                            in (_step == 0
+                                    ? _detailChildren(
+                                        event,
+                                        registered: myTicket != null,
+                                      )
+                                    : _formChildren(event))
+                                .indexed)
+                          Reveal(
+                            key: ValueKey<String>('$_step-$i'),
+                            index: i,
+                            child: w,
+                          ),
+                      ],
                     ),
                   ),
                   _BottomBar(
@@ -222,45 +240,51 @@ class _DetailEventPageState extends State<DetailEventPage> {
 
   List<Widget> _detailChildren(CampusEvent event, {required bool registered}) {
     final CategoryStyle style = categoryStyle(event.category);
+    // Peserta umum tidak mendapat poin SKPI.
+    final bool mahasiswa = context.watch<AuthViewModel>().isMahasiswa;
 
     return [
       ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Container(
-          height: 168,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: style.colors,
-            ),
-          ),
+        child: SizedBox(
+          height: 210,
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              Positioned(
-                right: -12,
-                bottom: -24,
-                child: Icon(
-                  style.icon,
-                  size: 170,
-                  color: Colors.white.withAlpha(40),
+              Hero(
+                tag: widget.heroTag ?? 'detail-${event.id}',
+                child: EventImage(
+                  path: event.image,
+                  color: style.color,
+                  icon: style.icon,
+                  semanticLabel: 'Foto ${event.title}',
                 ),
+              ),
+              const PhotoScrim(strength: 0x80),
+              Positioned(
+                left: 16,
+                top: 16,
+                child: DateBadge(dateLabel: event.dateLabel, size: 54),
               ),
               Positioned(
                 left: 16,
                 bottom: 16,
-                child: PillBadge.glass(text: event.category),
+                child: PillBadge.overlay(
+                  text: event.category,
+                  icon: style.icon,
+                ),
               ),
-              Positioned(
-                right: 16,
-                top: 16,
-                child: PillBadge(text: event.pointsLabel),
-              ),
+              if (mahasiswa)
+                Positioned(
+                  right: 16,
+                  top: 16,
+                  child: PillBadge.overlay(text: event.pointsLabel),
+                ),
             ],
           ),
         ),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -270,7 +294,16 @@ class _DetailEventPageState extends State<DetailEventPage> {
               text: 'Anda Sudah Terdaftar',
               icon: Icons.check_circle_rounded,
             ),
-          const PillBadge(text: 'Gratis Bersertifikat SKPI'),
+          if (event.internal)
+            const PillBadge(
+              text: 'Internal ITPLN',
+              icon: Icons.lock_outline_rounded,
+            ),
+          PillBadge(
+            text: mahasiswa
+                ? 'Gratis Bersertifikat SKPI'
+                : 'Gratis Bersertifikat',
+          ),
           PillBadge.success(
             text: 'Kuota: ${event.quotaLabel}',
             icon: Icons.event_seat_rounded,
@@ -287,15 +320,15 @@ class _DetailEventPageState extends State<DetailEventPage> {
         style: const TextStyle(
           fontFamily: AppFonts.heading,
           fontSize: 24,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w700,
           height: 1.25,
-          letterSpacing: -0.4,
-          color: AppColors.navy,
+          letterSpacing: -0.2,
+          color: AppColors.ink,
         ),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       SurfaceCard(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Container(
@@ -303,14 +336,14 @@ class _DetailEventPageState extends State<DetailEventPage> {
               height: 44,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.navy,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(
                 _initials(event.organizer),
                 style: const TextStyle(
                   fontFamily: AppFonts.heading,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
@@ -342,7 +375,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
           ],
         ),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const SectionHeader(title: 'Jadwal Acara'),
       const SizedBox(height: 12),
       _twoColumns([
@@ -359,20 +392,35 @@ class _DetailEventPageState extends State<DetailEventPage> {
           sub: 'Hybrid via Zoom tersedia',
         ),
       ]),
-      const SizedBox(height: 24),
-      SectionHeader(title: 'Benefit Peserta', trailingText: event.pointsLabel),
+      const SizedBox(height: 40),
+      SectionHeader(
+        title: 'Benefit Peserta',
+        trailingText: mahasiswa ? event.pointsLabel : null,
+      ),
       const SizedBox(height: 12),
       _twoColumns([
-        const _InfoTile(
-          icon: Icons.workspace_premium_rounded,
-          value: 'E-Sertifikat SIAKAD',
-          sub: 'Otomatis sinkron ke transkrip',
-        ),
-        _InfoTile(
-          icon: Icons.stars_rounded,
-          value: '+${event.points} Poin Kemahasiswaan',
-          sub: 'Syarat kelulusan wisuda',
-        ),
+        mahasiswa
+            ? const _InfoTile(
+                icon: Icons.workspace_premium_rounded,
+                value: 'E-Sertifikat SIAKAD',
+                sub: 'Otomatis sinkron ke transkrip',
+              )
+            : const _InfoTile(
+                icon: Icons.workspace_premium_rounded,
+                value: 'E-Sertifikat Digital',
+                sub: 'Bisa diunduh setelah acara',
+              ),
+        mahasiswa
+            ? _InfoTile(
+                icon: Icons.stars_rounded,
+                value: '+${event.points} Poin Kemahasiswaan',
+                sub: 'Syarat kelulusan wisuda',
+              )
+            : const _InfoTile(
+                icon: Icons.handshake_rounded,
+                value: 'Relasi & Networking',
+                sub: 'Bertemu peserta lintas kampus',
+              ),
         const _InfoTile(
           icon: Icons.lunch_dining_rounded,
           value: 'Snack & Makan Siang',
@@ -384,7 +432,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
           sub: 'Materi dan kit digital',
         ),
       ]),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const SectionHeader(title: 'Tentang Acara'),
       const SizedBox(height: 12),
       SurfaceCard(
@@ -400,7 +448,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
           ),
         ),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const SectionHeader(title: 'Silabus Sesi'),
       const SizedBox(height: 12),
       const SurfaceCard(
@@ -425,7 +473,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
           ],
         ),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const SectionHeader(
         title: 'Narasumber Tamu',
         trailingText: '2 Pembicara Utama',
@@ -450,14 +498,18 @@ class _DetailEventPageState extends State<DetailEventPage> {
     final String? jalurError = _submitted && _jalur == null
         ? 'Pilih salah satu jalur partisipasi.'
         : null;
-    final String? trackError =
-        _submitted && _track == null ? 'Pilih peminatan workshop.' : null;
-    final String? fileError =
-        _submitted && _fileName == null ? 'Unggah berkas persyaratan.' : null;
-    final String? agreeError =
-        _submitted && !_agree ? 'Anda harus menyetujui komitmen kehadiran.' : null;
-    final String? phoneError =
-        _submitted ? _validatePhone(_phoneController.text) : null;
+    final String? trackError = _submitted && _track == null
+        ? 'Pilih peminatan workshop.'
+        : null;
+    final String? fileError = _submitted && _fileName == null
+        ? 'Unggah berkas persyaratan.'
+        : null;
+    final String? agreeError = _submitted && !_agree
+        ? 'Anda harus menyetujui komitmen kehadiran.'
+        : null;
+    final String? phoneError = _submitted
+        ? _validatePhone(_phoneController.text)
+        : null;
     final StudentProfile student = context.watch<AuthViewModel>().student;
 
     return [
@@ -469,14 +521,16 @@ class _DetailEventPageState extends State<DetailEventPage> {
               style: TextStyle(
                 fontFamily: AppFonts.heading,
                 fontSize: 20,
-                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+                fontWeight: FontWeight.w700,
                 height: 1.25,
-                color: AppColors.navy,
+                color: AppColors.ink,
               ),
             ),
           ),
           const SizedBox(width: 8),
-          const PillBadge(text: 'Data SIAKAD', icon: Icons.sync_rounded),
+          if (student.isMahasiswa)
+            const PillBadge(text: 'Data SIAKAD', icon: Icons.sync_rounded),
         ],
       ),
       const SizedBox(height: 6),
@@ -486,25 +540,39 @@ class _DetailEventPageState extends State<DetailEventPage> {
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
       ),
-      const SizedBox(height: 20),
-      const SectionHeader(title: 'Identitas Mahasiswa Terhubung'),
+      const SizedBox(height: 24),
+      SectionHeader(
+        title: student.isMahasiswa
+            ? 'Identitas Mahasiswa Terhubung'
+            : 'Identitas Peserta',
+      ),
       const SizedBox(height: 12),
       SurfaceCard(
         child: Column(
           children: [
             _ReadOnlyField(label: 'Nama Lengkap', value: student.name),
             const SizedBox(height: 12),
-            _ReadOnlyField(label: 'NIM', value: student.nim),
-            const SizedBox(height: 12),
-            _ReadOnlyField(
-              label: 'Fakultas / Program Studi',
-              value: '${student.faculty} / ${student.program} '
-                  '(Semester ${student.semester})',
-            ),
+            if (student.isMahasiswa) ...[
+              _ReadOnlyField(label: 'NIM', value: student.nim),
+              const SizedBox(height: 12),
+              _ReadOnlyField(
+                label: 'Fakultas / Program Studi',
+                value:
+                    '${student.faculty} / ${student.program} '
+                    '(Semester ${student.semester})',
+              ),
+            ] else ...[
+              _ReadOnlyField(label: 'Email', value: student.email),
+              const SizedBox(height: 12),
+              _ReadOnlyField(
+                label: 'Asal Instansi',
+                value: student.institution ?? 'Umum',
+              ),
+            ],
           ],
         ),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const _FieldLabel('Nomor WhatsApp Aktif', required: true),
       const SizedBox(height: 10),
       TextField(
@@ -512,20 +580,21 @@ class _DetailEventPageState extends State<DetailEventPage> {
         keyboardType: TextInputType.phone,
         textInputAction: TextInputAction.done,
         autofillHints: const [AutofillHints.telephoneNumber],
-        decoration: appInputDecoration(
-          hint: '081234567890',
-          prefixIcon: Icons.phone_rounded,
-        ).copyWith(
-          errorText: phoneError,
-          helperText: 'Dipakai panitia untuk info teknis acara.',
-        ),
+        decoration:
+            appInputDecoration(
+              hint: '081234567890',
+              prefixIcon: Icons.phone_rounded,
+            ).copyWith(
+              errorText: phoneError,
+              helperText: 'Dipakai panitia untuk info teknis acara.',
+            ),
         // Perbarui pesan error secara langsung setelah tombol Konfirmasi
         // pernah ditekan.
         onChanged: (_) {
           if (_submitted) setState(() {});
         },
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const _FieldLabel('Pilihan Jalur Partisipasi', required: true),
       const SizedBox(height: 10),
       IntrinsicHeight(
@@ -555,7 +624,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
         ),
       ),
       if (jalurError != null) _ErrorText(jalurError),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const _FieldLabel('Pilih Peminatan Workshop', required: true),
       const SizedBox(height: 10),
       InkWell(
@@ -569,14 +638,11 @@ class _DetailEventPageState extends State<DetailEventPage> {
           ).copyWith(errorText: trackError),
           child: Text(
             _track ?? '',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textPrimary,
-            ),
+            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
           ),
         ),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 40),
       const SectionHeader(title: 'Syarat Tambahan Panitia'),
       const SizedBox(height: 12),
       SurfaceCard(
@@ -598,13 +664,13 @@ class _DetailEventPageState extends State<DetailEventPage> {
           ],
         ),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       CheckboxListTile(
         value: _agree,
         onChanged: (bool? v) => setState(() => _agree = v ?? false),
         controlAffinity: ListTileControlAffinity.leading,
         contentPadding: EdgeInsets.zero,
-        activeColor: AppColors.navy,
+        activeColor: AppColors.primary,
         title: const Text(
           'Saya berkomitmen hadir tepat waktu dan memahami bahwa '
           'pembatalan sepihak dapat mempengaruhi penalti poin SKPI.',
@@ -616,7 +682,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
         ),
       ),
       if (agreeError != null) _ErrorText(agreeError),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       const SectionHeader(title: 'Panduan Alur Pendaftaran & Tiket'),
       const SizedBox(height: 12),
       const SurfaceCard(
@@ -630,7 +696,7 @@ class _DetailEventPageState extends State<DetailEventPage> {
             _SyllabusRow(
               number: 2,
               title: 'QR Ticket untuk Absensi Hari H',
-              detail: 'Dapat dibuka kembali lewat tab Tiket Saya.',
+              detail: 'Dapat dibuka kembali lewat tab Event Saya.',
             ),
             _SyllabusRow(
               number: 3,
@@ -645,8 +711,10 @@ class _DetailEventPageState extends State<DetailEventPage> {
   }
 
   static String _initials(String text) {
-    final List<String> words =
-        text.split(RegExp(r'\s+')).where((String w) => w.isNotEmpty).toList();
+    final List<String> words = text
+        .split(RegExp(r'\s+'))
+        .where((String w) => w.isNotEmpty)
+        .toList();
     return words.take(2).map((String w) => w[0]).join().toUpperCase();
   }
 
@@ -705,7 +773,7 @@ class _StepIndicator extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 13),
                 child: Container(
                   height: 2,
-                  color: i <= current ? AppColors.navy : AppColors.outline,
+                  color: i <= current ? AppColors.primary : AppColors.outline,
                 ),
               ),
             ),
@@ -758,20 +826,24 @@ class _StepDot extends StatelessWidget {
                 height: 28,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: filled ? AppColors.navy : Colors.white,
+                  color: filled ? AppColors.primary : AppColors.surface,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: filled ? AppColors.navy : AppColors.outline,
+                    color: filled ? AppColors.primary : AppColors.outline,
                     width: 2,
                   ),
                 ),
                 child: done
-                    ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      )
                     : Text(
                         '${index + 1}',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: filled ? Colors.white : AppColors.textMuted,
                         ),
                       ),
@@ -781,8 +853,8 @@ class _StepDot extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                  color: active ? AppColors.navy : AppColors.textMuted,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                  color: active ? AppColors.primary : AppColors.textMuted,
                 ),
               ),
             ],
@@ -818,8 +890,8 @@ class _BottomBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.surfaceHigh)),
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [
@@ -841,7 +913,8 @@ class _BottomBar extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: AppFonts.heading,
                           fontSize: 22,
-                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.success,
                         ),
                       ),
@@ -863,12 +936,10 @@ class _BottomBar extends StatelessWidget {
             onPressed: loading ? null : (step == 0 ? onNext : onSubmit),
             style: FilledButton.styleFrom(
               minimumSize: const Size(150, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              shape: buttonShape,
               textStyle: const TextStyle(
                 fontFamily: AppFonts.heading,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
               ),
             ),
             child: loading
@@ -877,7 +948,7 @@ class _BottomBar extends StatelessWidget {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: AppColors.surface,
                     ),
                   )
                 : Text(_label),
@@ -904,7 +975,7 @@ class _InfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SurfaceCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -912,10 +983,10 @@ class _InfoTile extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.surfaceLow,
+              color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 20, color: AppColors.navy),
+            child: Icon(icon, size: 20, color: AppColors.glow),
           ),
           const SizedBox(height: 10),
           if (label != null)
@@ -974,15 +1045,15 @@ class _SyllabusRow extends StatelessWidget {
             height: 26,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
-              color: AppColors.accentSoft,
+              color: AppColors.primarySoft,
               shape: BoxShape.circle,
             ),
             child: Text(
               '$number',
               style: const TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: AppColors.accentDark,
+                fontWeight: FontWeight.w700,
+                color: AppColors.glow,
               ),
             ),
           ),
@@ -1027,7 +1098,7 @@ class _SpeakerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SurfaceCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           CircleAvatar(
@@ -1037,8 +1108,8 @@ class _SpeakerCard extends StatelessWidget {
               name[0],
               style: const TextStyle(
                 fontFamily: AppFonts.heading,
-                fontWeight: FontWeight.w800,
-                color: AppColors.navy,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
               ),
             ),
           ),
@@ -1183,32 +1254,32 @@ class _ChoiceCard extends StatelessWidget {
       button: true,
       selected: selected,
       child: Material(
-        color: selected ? AppColors.periwinkle : Colors.white,
+        color: selected ? AppColors.primarySoft : AppColors.surface,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: selected ? AppColors.navy : AppColors.outline,
+            color: selected ? AppColors.primary : AppColors.outline,
             width: selected ? 2 : 1,
           ),
         ),
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(icon, size: 22, color: AppColors.navy),
+                    Icon(icon, size: 22, color: AppColors.glow),
                     const Spacer(),
                     Icon(
                       selected
                           ? Icons.radio_button_checked_rounded
                           : Icons.radio_button_unchecked_rounded,
                       size: 20,
-                      color: selected ? AppColors.navy : AppColors.outline,
+                      color: selected ? AppColors.primary : AppColors.outline,
                     ),
                   ],
                 ),
@@ -1269,7 +1340,7 @@ class _UploadBox extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.cloud_upload_outlined,
                 size: 28,
-                color: hasFile ? AppColors.success : AppColors.navy,
+                color: hasFile ? AppColors.success : AppColors.primary,
               ),
               const SizedBox(width: 12),
               Expanded(

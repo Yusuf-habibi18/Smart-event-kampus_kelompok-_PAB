@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'core/app_routes.dart';
 import 'core/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
+import 'viewmodels/presensi_viewmodel.dart';
+import 'viewmodels/proposal_viewmodel.dart';
 import 'viewmodels/ticket_viewmodel.dart';
 
 void main() {
@@ -22,6 +24,15 @@ class SmartCampusEventApp extends StatelessWidget {
         ChangeNotifierProvider<AuthViewModel>(create: (_) => AuthViewModel()),
         ChangeNotifierProvider<TicketViewModel>(
           create: (_) => TicketViewModel(),
+        ),
+        // Modul Ormawa & Admin: proposal dibagikan agar keputusan BKA
+        // langsung terlihat di sisi Ormawa, dan presensi dibagikan antara
+        // halaman Kelola Peserta dan Scan QR.
+        ChangeNotifierProvider<ProposalViewModel>(
+          create: (_) => ProposalViewModel(),
+        ),
+        ChangeNotifierProvider<PresensiViewModel>(
+          create: (_) => PresensiViewModel(),
         ),
       ],
       child: MaterialApp(
